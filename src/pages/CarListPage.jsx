@@ -22,6 +22,19 @@ export default function CarListPage() {
     location: "",
   });
 
+  const defaultImages = [ // arabar esimlerim
+    "/car-1.jpg",
+    "/car-2.jpg",
+    "/car-3.jpg",
+    "/car-4.jpg",
+    "/car-5.jpg",
+    "/car-6.jpg",
+    "/car-7.jpg",
+    "/car-8.jpg",
+    "/car-9.jpg",
+    "/car-10.jpg",
+  ];
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -40,7 +53,7 @@ export default function CarListPage() {
 
   const formatTitle = (title) => {
     if (!title) return "";
-    return title.length > 50 ? `${title.substring(0, 50)}...` : title;
+    return title.length > 120 ? `${title.substring(0, 120)}...` : title;
   };
 
   return (
@@ -198,7 +211,7 @@ export default function CarListPage() {
                       <img
                         src={
                           car.imageUrl ||
-                          "https://placehold.co/400x300/161F2B/8B95A3?text=G%C3%B6rsel+Ekle"
+                          defaultImages[Math.floor(Math.random() * defaultImages.length)]
                         }
                         alt={car.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
