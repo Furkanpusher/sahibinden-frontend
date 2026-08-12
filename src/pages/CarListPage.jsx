@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom"; // useSearchParams eklendi
 import {
   ArrowLeft,
   SlidersHorizontal,
@@ -14,15 +14,19 @@ export default function CarListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // URL'DEKİ PARAMETRELERİ YAKALAR!
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filtreleri başlangıçta URL'den okuyoruz
   const [filters, setFilters] = useState({
-    brand: "",
-    transmission_type: "",
-    price_min: "",
-    price_max: "",
-    location: "",
+    brand: searchParams.get("brand") || "",
+    transmission_type: searchParams.get("transmission_type") || "",
+    price_min: searchParams.get("price_min") || "",
+    price_max: searchParams.get("price_max") || "",
+    location: searchParams.get("location") || "",
   });
 
-  const defaultImages = [ // arabar esimlerim
+  const defaultImages = [
     "/car-1.jpg",
     "/car-2.jpg",
     "/car-3.jpg",
@@ -45,11 +49,22 @@ export default function CarListPage() {
       .finally(() => setLoading(false));
   }, [filters]);
 
-  const handleChange = (field) => (e) =>
-    setFilters((prev) => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
+  // Inputlar değiştikçe hem state'i hem de tarayıcı URL'ini güncelliyoruz
+  const handleChange = (field) => (e) => {
+    const newValue = e.target.value;
+
+    setFilters((prev) => {
+      const updated = { ...prev, [field]: newValue };
+
+      // Boş olan filtreleri URL'den temizleyip güncel URL yazıyoruz
+      const cleanParams = Object.fromEntries(
+        Object.entries(updated).filter(([_, v]) => v !== "")
+      );
+      setSearchParams(cleanParams);
+
+      return updated;
+    });
+  };
 
   const formatTitle = (title) => {
     if (!title) return "";
@@ -200,10 +215,10 @@ export default function CarListPage() {
 
             {/* Car Grid */}
             {!loading && !error && cars.length > 0 && (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
                 {cars.map((car) => (
                   <Link
-                    to={`/car/${car.id}`} // tıkladığı arabayı id'si ile detay sayfasına yönlendiriyor
+                    to={`/car/${car.id}`}
                     key={car.id}
                     className="group min-w-0"
                   >

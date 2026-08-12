@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom"; 
 import {
   ArrowLeft,
   SlidersHorizontal,
@@ -14,11 +14,14 @@ export default function HouseListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Hook doğru şekilde burada tanımlandı
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [filters, setFilters] = useState({
-    number_of_rooms: "",
-    price_min: "",
-    price_max: "",
-    location: "",
+    number_of_rooms: searchParams.get("number_of_rooms") || "", 
+    price_min: searchParams.get("price_min") || "",
+    price_max: searchParams.get("price_max") || "",
+    location: searchParams.get("location") || "",
   });
 
   const defaultImages = [ // ev resimleri
@@ -44,11 +47,21 @@ export default function HouseListPage() {
       .finally(() => setLoading(false));
   }, [filters]);
 
-  const handleChange = (field) => (e) =>
-    setFilters((prev) => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
+  const handleChange = (field) => (e) => {
+    const newValue = e.target.value;
+
+    setFilters((prev) => {
+      const updated = { ...prev, [field]: newValue };
+
+      // Boş olan filtreleri URL'den temizleyip güncel URL yazıyoruz
+      const cleanParams = Object.fromEntries(
+        Object.entries(updated).filter(([_, v]) => v !== "")
+      );
+      setSearchParams(cleanParams);
+
+      return updated;
+    });
+  };
 
   const formatTitle = (title) => {
     if (!title) return "";
@@ -184,9 +197,9 @@ export default function HouseListPage() {
               </div>
             )}
 
-            {/* House Grid */}
+            {/* House Grid - Geniş ekranlar için kolon sayıları artırıldı */}
             {!loading && !error && houses.length > 0 && (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
                 {houses.map((house) => (
                   <Link
                     to={`/house/${house.id}`}

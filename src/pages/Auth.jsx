@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { User, Lock, Mail, Phone, LogIn, UserPlus, CheckCircle2, XCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE = "http://localhost:8001/accounts";
 
 export default function AuthPage() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState("login"); // "login" | "register"
   const [form, setForm] = useState({
     username: "",
@@ -11,7 +13,7 @@ export default function AuthPage() {
     email: "",
     phone_number: "",
   });
-  const [status, setStatus] = useState(null); // { type: "success"|"error", message, token }
+  const [status, setStatus] = useState(null); // { type: "success"|"error", message, detail }
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field) => (e) =>
@@ -37,15 +39,26 @@ export default function AuthPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setStatus({
-          type: "success",
-          message:
-            mode === "login"
-              ? "Giriş başarılı."
-              : "Kayıt başarılı, şimdi giriş yapabilirsin.",
-          detail: mode === "login" ? data.access : null,
-        });
-        if (mode === "register") setMode("login");
+        if (mode === "login") {
+          // Token'ları sakla - sonraki isteklerde Authorization header'ında kullanılacak
+          localStorage.setItem("access_token", data.access);
+          localStorage.setItem("refresh_token", data.refresh);
+
+          setStatus({
+            type: "success",
+            message: "Giriş başarılı, yönlendiriliyorsun...",
+            detail: data.access,
+          });
+
+          // Kısa bir gecikmeyle ana sayfaya yönlendir
+          setTimeout(() => navigate("/"), 600);
+        } else {
+          setStatus({
+            type: "success",
+            message: "Kayıt başarılı, şimdi giriş yapabilirsin.",
+          });
+          setMode("login");
+        }
       } else {
         const ilkHata =
           typeof data === "object"
