@@ -1,6 +1,6 @@
 const API_BASE = "http://localhost:8001/api/listings";
 
-export async function fetchListings(path, params = {}) {
+export async function fetchListings(path, params = {}) { // path = (/house/12/) gibi params = {number_of_rooms: 3, floor: 2} gibi
   const query = new URLSearchParams(
     Object.fromEntries(Object.entries(params).filter(([, v]) => v !== "" && v != null))
   ).toString();
