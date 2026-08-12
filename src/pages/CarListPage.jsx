@@ -203,7 +203,7 @@ export default function CarListPage() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {cars.map((car) => (
                   <Link
-                    to={`/car/${car.id}`}
+                    to={`/car/${car.id}`} // tıkladığı arabayı id'si ile detay sayfasına yönlendiriyor
                     key={car.id}
                     className="group min-w-0"
                   >
