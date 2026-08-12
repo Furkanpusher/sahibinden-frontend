@@ -12,6 +12,9 @@ export default function App() {
         <Route path="/all-cars" element={<CarListPage />} />
         <Route path="/all-houses" element={<HouseListPage />} />
         <Route path="/login" element={<AuthPage />} />
+        <Route path="/car/:id" element={<CarDetailPage />} />
+        <Route path="/house/:id" element={<HouseDetailPage />} />
+        
       </Routes>
     </BrowserRouter>
   );

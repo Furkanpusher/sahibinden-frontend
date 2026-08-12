@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, SlidersHorizontal } from "lucide-react";
+import {
+  ArrowLeft,
+  SlidersHorizontal,
+  Loader2,
+  SearchX,
+} from "lucide-react";
 import { fetchListings } from "../api";
-import { FilterInput, ListingCard } from "../components/ListingUI";
+import { FilterInput } from "../components/ListingUI";
 
 export default function HouseListPage() {
   const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [filters, setFilters] = useState({
     number_of_rooms: "",
     price_min: "",
@@ -15,9 +21,23 @@ export default function HouseListPage() {
     location: "",
   });
 
+  const defaultImages = [ // ev resimleri
+    "/house-1.jpg",
+    "/house-2.jpg",
+    "/house-3.jpg",
+    "/house-4.jpg",
+    "/house-5.jpg",
+    "/house-6.jpg",
+    "/house-7.jpg",
+    "/house-8.jpg",
+    "/house-9.jpg",
+    "/house-10.jpg",
+  ];
+
   useEffect(() => {
     setLoading(true);
     setError(null);
+
     fetchListings("/all-houses/", filters)
       .then(setHouses)
       .catch((err) => setError(err.message))
@@ -25,86 +45,178 @@ export default function HouseListPage() {
   }, [filters]);
 
   const handleChange = (field) => (e) =>
-    setFilters((prev) => ({ ...prev, [field]: e.target.value }));
+    setFilters((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }));
+
+  const formatTitle = (title) => {
+    if (!title) return "";
+    return title.length > 120 ? `${title.substring(0, 120)}...` : title;
+  };
 
   return (
-    <div className="min-h-screen bg-[#0F1720] p-6">
-      <div className="max-w-6xl mx-auto">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-[#8B95A3] hover:text-[#EDEFF2] text-sm mb-6 transition-colors"
-        >
-          <ArrowLeft size={15} /> Ana sayfa
-        </Link>
+    <div className="min-h-screen bg-[#0F1720] px-4 py-5 text-[#EDEFF2] sm:px-6 lg:px-8 lg:py-7">
+      <div className="w-full">
 
-        <div className="flex flex-col md:flex-row gap-6">
-          <aside className="w-full md:w-64 shrink-0">
-            <div className="bg-[#161F2B] border border-[#232E3D] rounded-2xl p-5 sticky top-6">
-              <div className="flex items-center gap-2 mb-4 text-[#EDEFF2] font-medium text-sm">
-                <SlidersHorizontal size={15} /> Filtrele
+        {/* Page Header */}
+        <header className="mb-7 border-b border-[#232E3D] pb-5">
+          <Link
+            to="/"
+            className="group mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#8B95A3] transition-colors hover:text-[#EDEFF2]"
+          >
+            <ArrowLeft
+              size={16}
+              className="transition-transform duration-200 group-hover:-translate-x-1"
+            />
+            Ana sayfa
+          </Link>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#EDEFF2] sm:text-3xl">
+                Ev İlanları
+              </h1>
+
+              <p className="mt-1 text-sm text-[#667384]">
+                Aradığın evi filtreleyerek hızlıca bul.
+              </p>
+            </div>
+
+            {!loading && houses.length > 0 && (
+              <span className="w-fit rounded-lg border border-[#232E3D] bg-[#161F2B] px-3 py-1.5 text-xs font-medium text-[#8B95A3]">
+                {houses.length} sonuç
+              </span>
+            )}
+          </div>
+        </header>
+
+        {/* Main Layout */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+
+          {/* Filter Sidebar */}
+          <aside className="w-full shrink-0 lg:w-64 xl:w-72">
+            <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] p-5 lg:sticky lg:top-6">
+
+              <div className="mb-5 flex items-center gap-2 border-b border-[#232E3D] pb-4 text-sm font-semibold text-[#EDEFF2]">
+                <SlidersHorizontal size={16} />
+                Filtrele
               </div>
 
-              <FilterInput
-                label="Oda Sayısı"
-                placeholder="3+1"
-                value={filters.number_of_rooms}
-                onChange={handleChange("number_of_rooms")}
-              />
-              <FilterInput
-                label="Min. Fiyat"
-                type="number"
-                placeholder="0"
-                value={filters.price_min}
-                onChange={handleChange("price_min")}
-              />
-              <FilterInput
-                label="Max. Fiyat"
-                type="number"
-                placeholder="1000000"
-                value={filters.price_max}
-                onChange={handleChange("price_max")}
-              />
-              <FilterInput
-                label="Konum"
-                placeholder="Ankara"
-                value={filters.location}
-                onChange={handleChange("location")}
-              />
+              <div className="flex flex-col space-y-4">
+
+                <FilterInput
+                  label="Oda Sayısı"
+                  placeholder="Örn: 3+1"
+                  value={filters.number_of_rooms}
+                  onChange={handleChange("number_of_rooms")}
+                />
+
+                <FilterInput
+                  label="Min. Fiyat"
+                  type="number"
+                  placeholder="0"
+                  value={filters.price_min}
+                  onChange={handleChange("price_min")}
+                />
+
+                <FilterInput
+                  label="Max. Fiyat"
+                  type="number"
+                  placeholder="1.000.000"
+                  value={filters.price_max}
+                  onChange={handleChange("price_max")}
+                />
+
+                <FilterInput
+                  label="Konum"
+                  placeholder="Örn: Ankara"
+                  value={filters.location}
+                  onChange={handleChange("location")}
+                />
+
+              </div>
             </div>
           </aside>
 
-          <main className="flex-1">
-            <h1 className="text-xl font-semibold text-[#EDEFF2] mb-4">
-              Ev İlanları {!loading && `(${houses.length})`}
-            </h1>
+          {/* Listings */}
+          <main className="min-w-0 flex-1">
 
-            {loading && <p className="text-[#8B95A3] text-sm">Yükleniyor...</p>}
-            {error && (
-              <p className="text-[#E88080] text-sm">
-                Bir hata oluştu: {error}
-              </p>
-            )}
-            {!loading && !error && houses.length === 0 && (
-              <p className="text-[#8B95A3] text-sm">
-                Bu kriterlere uygun ilan bulunamadı.
-              </p>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {houses.map((house) => (
-                <ListingCard
-                  key={house.id}
-                  title={house.title}
-                  location={house.location}
-                  price={house.price}
-                  extraLines={[
-                    house.number_of_rooms,
-                    house.meter_squared ? `${house.meter_squared} m²` : null,
-                    house.floor ? `${house.floor}. kat` : null,
-                  ].filter(Boolean)}
+            {/* Loading */}
+            {loading && (
+              <div className="flex min-h-[400px] flex-col items-center justify-center text-[#8B95A3]">
+                <Loader2
+                  size={32}
+                  className="mb-3 animate-spin text-[#E8A33D]"
                 />
-              ))}
-            </div>
+
+                <p className="text-sm font-medium">
+                  İlanlar aranıyor...
+                </p>
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl border border-[#E88080]/30 bg-[#E88080]/10 p-5 text-center text-[#E88080]">
+                <p className="text-sm font-medium">
+                  Hata: {error}
+                </p>
+              </div>
+            )}
+
+            {/* Empty */}
+            {!loading && !error && houses.length === 0 && (
+              <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-dashed border-[#2B3747] bg-[#161F2B]/40 p-10 text-center">
+                <SearchX
+                  size={42}
+                  className="mb-4 text-[#667384]"
+                />
+
+                <h3 className="text-lg font-semibold text-[#EDEFF2]">
+                  İlan Bulunamadı
+                </h3>
+
+                <p className="mt-2 max-w-sm text-sm leading-6 text-[#8B95A3]">
+                  Filtrelerinize uygun ev bulunamadı.
+                  Filtreleri değiştirerek tekrar deneyebilirsiniz.
+                </p>
+              </div>
+            )}
+
+            {/* House Grid */}
+            {!loading && !error && houses.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {houses.map((house) => (
+                  <Link
+                    to={`/house/${house.id}`}
+                    key={house.id}
+                    className="group min-w-0"
+                  >
+                    <div className="relative mb-2 aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#232E3D] bg-[#161F2B] transition-all duration-300 group-hover:border-[#4A5568] group-hover:shadow-lg group-hover:shadow-black/10">
+                      <img
+                        src={
+                          house.imageUrl ||
+                          defaultImages[Math.floor(Math.random() * defaultImages.length)]
+                        }
+                        alt={house.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    </div>
+
+                    <h2
+                      className="px-1 text-xs font-medium leading-5 text-[#8B95A3] transition-colors group-hover:text-[#E8A33D]"
+                      title={house.title}
+                    >
+                      {formatTitle(house.title)}
+                    </h2>
+                  </Link>
+                ))}
+              </div>
+            )}
+
           </main>
         </div>
       </div>
