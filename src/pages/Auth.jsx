@@ -25,7 +25,7 @@ export default function AuthPage() {
     setStatus(null);
 
     const endpoint = mode === "login" ? "/login/" : "/register/";
-    const payload =
+    const payload = // payload burda gidiyor
       mode === "login"
         ? { username: form.username, password: form.password }
         : form;

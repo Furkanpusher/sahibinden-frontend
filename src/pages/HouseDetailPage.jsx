@@ -23,6 +23,7 @@ export default function HouseDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0F1720] flex items-center justify-center">

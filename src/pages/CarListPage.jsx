@@ -7,7 +7,7 @@ import {
   SearchX,
 } from "lucide-react";
 import { fetchListings } from "../api";
-import { FilterInput, FilterSelect } from "../components/ListingUI";
+import { FilterInput, FilterSelect } from "../components/ListingUI"; // hem input alabilcem hemde dropdowni çin select
 
 export default function CarListPage() {
   const [cars, setCars] = useState([]);
@@ -23,8 +23,17 @@ export default function CarListPage() {
     transmission_type: searchParams.get("transmission_type") || "",
     price_min: searchParams.get("price_min") || "",
     price_max: searchParams.get("price_max") || "",
-    location: searchParams.get("location") || "",
+    city: searchParams.get("city") || "",
+    district: searchParams.get("district") || "",
   });
+
+
+  const [options, setOptions] = useState({ // car için backendden gelcek dropdown seçenekleri
+  cities: [],
+  districts: [],
+  brands: [],
+  transmissions: [],
+});
 
   const defaultImages = [
     "/car-1.jpg",
@@ -39,32 +48,47 @@ export default function CarListPage() {
     "/car-10.jpg",
   ];
 
-  useEffect(() => {
+  useEffect(() => { // Tüm arabaları göstercek
     setLoading(true);
     setError(null);
 
-    fetchListings("/all-cars/", filters)
+    fetchListings("/all-cars/", filters)  
       .then(setCars)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [filters]);
 
+
+  useEffect(() => { // araba optionları seçen 
+  const params = filters.city ? { city: filters.city } : {};
+  fetchListings("/car-options/", params)
+    .then((data) => {
+      setOptions({
+        cities: data.cities || [],
+        districts: data.districts || [],
+        brands: data.brands || [],
+        transmissions: data.transmissions || [],
+      });
+    })
+    .catch((err) => console.error("Filtre seçenekleri alınamadı:", err));
+}, [filters.city]);
+
   // Inputlar değiştikçe hem state'i hem de tarayıcı URL'ini güncelliyoruz
   const handleChange = (field) => (e) => {
-    const newValue = e.target.value;
-
-    setFilters((prev) => {
-      const updated = { ...prev, [field]: newValue };
-
-      // Boş olan filtreleri URL'den temizleyip güncel URL yazıyoruz
-      const cleanParams = Object.fromEntries(
-        Object.entries(updated).filter(([_, v]) => v !== "")
-      );
-      setSearchParams(cleanParams);
-
-      return updated;
-    });
-  };
+  const newValue = e.target.value;
+  setFilters((prev) => {
+    const updated = {
+      ...prev,
+      [field]: newValue,
+      ...(field === "city" ? { district: "" } : {}), // citye göre maplicek distrciti
+    };
+    const cleanParams = Object.fromEntries(
+      Object.entries(updated).filter(([_, v]) => v !== "")
+    );
+    setSearchParams(cleanParams);
+    return updated;
+  });
+};
 
   const formatTitle = (title) => {
     if (!title) return "";
@@ -121,25 +145,46 @@ export default function CarListPage() {
 
               <div className="flex flex-col space-y-4">
 
-                <FilterInput
-                  label="Marka"
-                  placeholder="Örn: Renault"
-                  value={filters.brand}
-                  onChange={handleChange("brand")}
-                />
-
-                <FilterSelect
-                  label="Vites Tipi"
-                  value={filters.transmission_type}
-                  onChange={handleChange("transmission_type")}
-                >
-                  <option value="">Hepsi</option>
-                  <option value="Düz">Manuel</option>
-                  <option value="Otomatik">Otomatik</option>
-                  <option value="Yarı Otomatik">
-                    Yarı Otomatik
-                  </option>
+                {/* Marka Dropdown */}
+                <FilterSelect label="Marka" value={filters.brand} onChange={handleChange("brand")}>
+                  <option value="">Tüm Markalar</option>
+                  {options.brands.map((b) => {
+                    const val = typeof b === "object" ? b.name : b;
+                    const countStr = typeof b === "object" && b.count ? ` (${b.count})` : "";
+                    return <option key={val} value={val}>{val}{countStr}</option>;
+                  })}
                 </FilterSelect>
+
+                {/* Şehir Dropdown */}
+                <FilterSelect label="Şehir" value={filters.city} onChange={handleChange("city")}>
+                  <option value="">Tüm Şehirler</option>
+                  {options.cities.map((c) => {
+                    const val = typeof c === "object" ? c.name : c;
+                    const countStr = typeof c === "object" && c.count ? ` (${c.count})` : "";
+                    return <option key={val} value={val}>{val}{countStr}</option>;
+                  })}
+                </FilterSelect>
+                
+                {/* Vites Tipi Dropdown */}
+                <FilterSelect label="Vites Tipi" value={filters.transmission_type} onChange={handleChange("transmission_type")}>
+                  <option value="">Tüm Vites Tipleri</option>
+                  {options.transmissions.map((t) => {
+                    const val = typeof t === "object" ? t.name : t;
+                    const countStr = typeof t === "object" && t.count ? ` (${t.count})` : "";
+                    return <option key={val} value={val}>{val}{countStr}</option>;
+                  })}
+                </FilterSelect>
+
+
+                  {/* Semt / İlçe Dropdown */}
+                  <FilterSelect label="Semt / İlçe" value={filters.district} onChange={handleChange("district")}>
+                    <option value="">Tüm İlçeler</option>
+                    {options.districts.map((d) => {
+                      const val = typeof d === "object" ? d.name : d;
+                      const countStr = typeof d === "object" && d.count ? ` (${d.count})` : "";
+                      return <option key={val} value={val}>{val}{countStr}</option>;
+                    })}
+                  </FilterSelect>
 
                 <FilterInput
                   label="Min. Fiyat"
@@ -155,13 +200,6 @@ export default function CarListPage() {
                   placeholder="1.000.000"
                   value={filters.price_max}
                   onChange={handleChange("price_max")}
-                />
-
-                <FilterInput
-                  label="Konum"
-                  placeholder="Örn: Ankara"
-                  value={filters.location}
-                  onChange={handleChange("location")}
                 />
 
               </div>
@@ -241,6 +279,11 @@ export default function CarListPage() {
                     >
                       {formatTitle(car.title)}
                     </h2>
+                    {(car.city || car.district) && (
+                    <p className="px-1 mt-0.5 text-[11px] text-[#667384]">
+                      {[car.city, car.district].filter(Boolean).join(", ")}
+                    </p>
+                  )}
                   </Link>
                 ))}
               </div>

@@ -7,7 +7,7 @@ import {
   SearchX,
 } from "lucide-react";
 import { fetchListings } from "../api";
-import { FilterInput } from "../components/ListingUI";
+import { FilterInput, FilterSelect } from "../components/ListingUI";
 
 export default function HouseListPage() {
   const [houses, setHouses] = useState([]);
@@ -21,8 +21,15 @@ export default function HouseListPage() {
     number_of_rooms: searchParams.get("number_of_rooms") || "", 
     price_min: searchParams.get("price_min") || "",
     price_max: searchParams.get("price_max") || "",
-    location: searchParams.get("location") || "",
+    city: searchParams.get("city") || "",
+    district: searchParams.get("district") || "",
   });
+
+const [options, setOptions] = useState({
+  cities: [],
+  districts: [],
+  number_of_rooms: [],
+});
 
   const defaultImages = [ // ev resimleri
     "/house-1.jpg",
@@ -37,7 +44,7 @@ export default function HouseListPage() {
     "/house-10.jpg",
   ];
 
-  useEffect(() => {
+  useEffect(() => { // Tüm evleri çek ve filters dagönder
     setLoading(true);
     setError(null);
 
@@ -47,21 +54,35 @@ export default function HouseListPage() {
       .finally(() => setLoading(false));
   }, [filters]);
 
+  useEffect(() => { // house dropdown
+  const params = filters.city ? { city: filters.city } : {};
+  fetchListings("/house-options/", params)
+    .then((data) => {
+      setOptions({
+        cities: data.cities || [],
+        districts: data.districts || [],
+        number_of_rooms: data.number_of_rooms || [],
+      });
+    })
+    .catch((err) => console.error("Filtre seçenekleri alınamadı:", err));
+}, [filters.city]);
+
+
   const handleChange = (field) => (e) => {
-    const newValue = e.target.value;
-
-    setFilters((prev) => {
-      const updated = { ...prev, [field]: newValue };
-
-      // Boş olan filtreleri URL'den temizleyip güncel URL yazıyoruz
-      const cleanParams = Object.fromEntries(
-        Object.entries(updated).filter(([_, v]) => v !== "")
-      );
-      setSearchParams(cleanParams);
-
-      return updated;
-    });
-  };
+  const newValue = e.target.value;
+  setFilters((prev) => {
+    const updated = {
+      ...prev,
+      [field]: newValue,
+      ...(field === "city" ? { district: "" } : {}),
+    };
+    const cleanParams = Object.fromEntries(
+      Object.entries(updated).filter(([_, v]) => v !== "")
+    );
+    setSearchParams(cleanParams);
+    return updated;
+  });
+};
 
   const formatTitle = (title) => {
     if (!title) return "";
@@ -118,35 +139,76 @@ export default function HouseListPage() {
 
               <div className="flex flex-col space-y-4">
 
-                <FilterInput
+                
+                {/* Filtrelerim */}
+                 {/* Oda Sayısı Dropdown */}
+                <FilterSelect
                   label="Oda Sayısı"
-                  placeholder="Örn: 3+1"
                   value={filters.number_of_rooms}
                   onChange={handleChange("number_of_rooms")}
-                />
+                >
+                  <option value="">Tüm Oda Sayıları</option>
+                  {options.number_of_rooms.map((r) => {
+                    const val = typeof r === "object" ? r.name : r;
+                    const countStr = typeof r === "object" && r.count ? ` (${r.count})` : "";
+                    return (
+                      <option key={val} value={val}>
+                        {val}{countStr}
+                      </option>
+                    );
+                  })}
+                </FilterSelect>
 
-                <FilterInput
-                  label="Min. Fiyat"
-                  type="number"
-                  placeholder="0"
-                  value={filters.price_min}
-                  onChange={handleChange("price_min")}
-                />
+                {/* Şehir Dropdown */}
+                <FilterSelect
+                  label="Şehir"
+                  value={filters.city}
+                  onChange={handleChange("city")}
+                >
+                  <option value="">Tüm Şehirler</option>
+                  {options.cities.map((c) => {
+                    const val = typeof c === "object" ? c.name : c;
+                    const countStr = typeof c === "object" && c.count ? ` (${c.count})` : "";
+                    return (
+                      <option key={val} value={val}>
+                        {val}{countStr}
+                      </option>
+                    );
+                  })}
+                </FilterSelect>
 
-                <FilterInput
-                  label="Max. Fiyat"
-                  type="number"
-                  placeholder="1.000.000"
-                  value={filters.price_max}
-                  onChange={handleChange("price_max")}
-                />
+                <FilterSelect
+                  label="Semt / İlçe"
+                  value={filters.district}
+                  onChange={handleChange("district")}
+                >
+                  <option value="">Tüm İlçeler</option>
+                  {options.districts.map((d) => {
+                    const val = typeof d === "object" ? d.name : d;
+                    const countStr = typeof d === "object" && d.count ? ` (${d.count})` : "";
+                    return (
+                      <option key={val} value={val}>
+                        {val}{countStr}
+                      </option>
+                    );
+                  })}
+                </FilterSelect>
 
-                <FilterInput
-                  label="Konum"
-                  placeholder="Örn: Ankara"
-                  value={filters.location}
-                  onChange={handleChange("location")}
-                />
+                 {/* Fiyat İnputları */}
+                  <FilterInput
+                    label="Min. Fiyat"
+                    type="number"
+                    placeholder="0"
+                    value={filters.price_min}
+                    onChange={handleChange("price_min")}
+                  />
+                  <FilterInput
+                    label="Max. Fiyat"
+                    type="number"
+                    placeholder="1.000.000"
+                    value={filters.price_max}
+                    onChange={handleChange("price_max")}
+                  />
 
               </div>
             </div>
@@ -225,6 +287,13 @@ export default function HouseListPage() {
                     >
                       {formatTitle(house.title)}
                     </h2>
+
+                    {/* Şehir ve Semt Bilgisi */}
+                    {(house.city || house.district) && (
+                      <p className="px-1 mt-0.5 text-[11px] text-[#667384]">
+                        {[house.city, house.district].filter(Boolean).join(", ")}
+                      </p>
+                    )}
                   </Link>
                 ))}
               </div>
