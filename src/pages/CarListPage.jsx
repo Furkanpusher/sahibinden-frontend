@@ -9,6 +9,23 @@ import {
 import { fetchListings } from "../api";
 import { FilterInput, FilterSelect } from "../components/ListingUI"; // hem input alabilcem hemde dropdowni çin select
 
+
+  const defaultImages = [
+    "/car-1.jpg",
+    "/car-2.jpg",
+    "/car-3.jpg",
+    "/car-4.jpg",
+    "/car-5.jpg",
+    "/car-6.jpg",
+    "/car-7.jpg",
+    "/car-8.jpg",
+    "/car-9.jpg",
+    "/car-10.jpg",
+  ];
+
+
+
+
 export default function CarListPage() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,18 +52,6 @@ export default function CarListPage() {
   transmissions: [],
 });
 
-  const defaultImages = [
-    "/car-1.jpg",
-    "/car-2.jpg",
-    "/car-3.jpg",
-    "/car-4.jpg",
-    "/car-5.jpg",
-    "/car-6.jpg",
-    "/car-7.jpg",
-    "/car-8.jpg",
-    "/car-9.jpg",
-    "/car-10.jpg",
-  ];
 
   useEffect(() => { // Tüm arabaları göstercek
     setLoading(true);
@@ -74,21 +79,20 @@ export default function CarListPage() {
 }, [filters.city]);
 
   // Inputlar değiştikçe hem state'i hem de tarayıcı URL'ini güncelliyoruz
-  const handleChange = (field) => (e) => {
+ const handleChange = (field) => (e) => {
   const newValue = e.target.value;
-  setFilters((prev) => {
-    const updated = {
-      ...prev,
-      [field]: newValue,
-      ...(field === "city" ? { district: "" } : {}), // citye göre maplicek distrciti
-    };
-    const cleanParams = Object.fromEntries(
-      Object.entries(updated).filter(([_, v]) => v !== "")
-    );
-    setSearchParams(cleanParams);
-    return updated;
-  });
+  const updated = {
+    ...filters,
+    [field]: newValue,
+    ...(field === "city" ? { district: "" } : {}),
+  };
+  const cleanParams = Object.fromEntries(
+    Object.entries(updated).filter(([_, v]) => v !== "")
+  );
+  setFilters(updated);          // ← önce filter'ı güncelle
+  setSearchParams(cleanParams); // ← sonra URL'i güncelle
 };
+
 
   const formatTitle = (title) => {
     if (!title) return "";
@@ -117,11 +121,19 @@ export default function CarListPage() {
               <h1 className="text-2xl font-bold tracking-tight text-[#EDEFF2] sm:text-3xl">
                 Araç İlanları
               </h1>
+              
 
               <p className="mt-1 text-sm text-[#667384]">
                 Aradığın aracı filtreleyerek hızlıca bul.
               </p>
             </div>
+
+              <Link
+                to="/araba-ilan-olustur"
+                className="rounded-lg bg-[#E8A33D] px-4 py-2 text-sm font-semibold text-[#0F1720] hover:bg-[#F0B058] transition-colors"
+              >
+                + İlan Oluştur
+              </Link>
 
             {!loading && cars.length > 0 && (
               <span className="w-fit rounded-lg border border-[#232E3D] bg-[#161F2B] px-3 py-1.5 text-xs font-medium text-[#8B95A3]">
@@ -262,10 +274,7 @@ export default function CarListPage() {
                   >
                     <div className="relative mb-2 aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#232E3D] bg-[#161F2B] transition-all duration-300 group-hover:border-[#4A5568] group-hover:shadow-lg group-hover:shadow-black/10">
                       <img
-                        src={
-                          car.imageUrl ||
-                          defaultImages[Math.floor(Math.random() * defaultImages.length)]
-                        }
+                        src={car.imageUrl || defaultImages[car.id % defaultImages.length]}
                         alt={car.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />

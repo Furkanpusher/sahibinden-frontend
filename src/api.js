@@ -13,3 +13,29 @@ export async function fetchListings(path, params = {}) { // path = (/house/12/) 
   }
   return res.json();
 }
+
+export async function postListing(path, data) {
+  const token = localStorage.getItem("access_token"); // JWT token'ı localStorage'dan alıyoruz
+
+  if (!token) {
+    throw new Error("Lütfen önce giriş yapın.");
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    // DRF 'detail' hatası döndüyse direkt onu al, yoksa ilk hatayı al
+    const ilkHata = err.detail || (typeof err === "object" ? Object.values(err).flat()[0] : "Bir hata oluştu.");
+    throw new Error(String(ilkHata));
+  }
+  return res.json();
+}
+
