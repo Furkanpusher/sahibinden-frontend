@@ -6,6 +6,9 @@ import HouseListPage from "./pages/HouseListPage.jsx";
 import CarDetailPage from "./pages/CarDetailPage.jsx";
 import HouseDetailPage from "./pages/HouseDetailPage.jsx";
 import CarCreatePage from "./pages/CarCreatePage.jsx";
+import HouseCreatePage from "./pages/HouseCreatePage.jsx";
+import CarUpdatePage from "./pages/CarUpdatePage.jsx";
+import HouseUpdatePage from "./pages/HouseUpdatePage.jsx";
 
 export default function App() {
   return (
@@ -18,6 +21,10 @@ export default function App() {
         <Route path="/car/:id" element={<CarDetailPage />} />
         <Route path="/house/:id" element={<HouseDetailPage />} />
         <Route path = "/araba-ilan-olustur" element={<CarCreatePage />}/>
+        <Route path = "/ev-ilan-olustur" element={<HouseCreatePage />}/>
+        <Route path = "/araba-ilan-guncelle/:id" element={<CarUpdatePage />}/>
+        <Route path = "/ev-ilan-guncelle/:id" element={<HouseUpdatePage />}/>
+        
 
       </Routes>
     </BrowserRouter>

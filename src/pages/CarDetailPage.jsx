@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2, MapPin, Trash2, Pencil } from "lucide-react";
 import { fetchListings } from "../api";
 
 const defaultImages = [
@@ -10,9 +10,11 @@ const defaultImages = [
 
 export default function CarDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -22,6 +24,43 @@ export default function CarDetailPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Oturum açmış kullanıcının bilgilerini ve Token'ını alıyoruz
+  const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
+  const storedUser = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
+  const currentUserId = storedUser?.id || storedUser?.pk || localStorage.getItem("user_id") || localStorage.getItem("userId");
+
+  // Kullanıcı giriş yapmışsa ve ilan sahibiyle eşleşiyorsa (veya token varsa) yetkili kabul edilir
+  const isOwner = Boolean(token) && (!currentUserId || String(currentUserId) === String(car?.listing_owner));
+
+  const handleDelete = async () => {  // ilan silme fonksiyonu
+    if (!window.confirm("Bu ilanı silmek istediğinize emin misiniz?")) return;
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
+      
+      const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8001/api";
+      
+      const response = await fetch(`${API_URL}/listings/car/${id}/`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = resData.detail || resData.hata || resData.message || JSON.stringify(resData);
+        throw new Error(`[HTTP ${response.status}] ${errorMessage}`);
+      }
+      alert("İlan başarıyla silindi.");
+      navigate("/all-cars");
+    } catch (err) {
+      alert(`Hata: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -44,7 +83,7 @@ export default function CarDetailPage() {
 
   const image = defaultImages[car.id % defaultImages.length];
 
-  // tabloda gösterilecek key-value çiftleri
+  // Tabloda gösterilecek key-value çiftleri
   const details = [
     { label: "İlan No", value: car.id },
     { label: "İlan Tarihi", value: car.listing_date },
@@ -90,7 +129,7 @@ export default function CarDetailPage() {
         )}
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sol: görsel */}
+          {/* Sol: Görsel ve Fiyat */}
           <div className="lg:w-[55%] shrink-0">
             <div className="rounded-xl overflow-hidden border border-[#232E3D] bg-[#161F2B] aspect-[4/3]">
               <img src={image} alt={car.title} className="w-full h-full object-cover" />
@@ -103,19 +142,52 @@ export default function CarDetailPage() {
             </div>
           </div>
 
-          {/* Sağ: key-value tablo */}
-          <div className="flex-1 rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
-            {details.map((d, i) => (
-              <div
-                key={d.label}
-                className={`flex justify-between px-5 py-3 text-sm ${
-                  i % 2 === 0 ? "bg-[#161F2B]" : "bg-[#1A2430]"
-                }`}
-              >
-                <span className="text-[#8B95A3]">{d.label}</span>
-                <span className="text-[#EDEFF2] font-medium text-right">{d.value}</span>
+          {/* Sağ: Key-Value Tablo + Aksiyon Butonları (Düzenle & Sil) */}
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
+              {details.map((d, i) => (
+                <div
+                  key={d.label}
+                  className={`flex justify-between px-5 py-3 text-sm ${
+                    i % 2 === 0 ? "bg-[#161F2B]" : "bg-[#1A2430]"
+                  }`}
+                >
+                  <span className="text-[#8B95A3]">{d.label}</span>
+                  <span className="text-[#EDEFF2] font-medium text-right">{d.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* İlan Sahibine Özel Aksiyonlar */}
+            {isOwner && (
+              <div className="flex gap-3">
+                <Link
+                  to={`/araba-ilan-guncelle/${car.id}`}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#E8A33D]/10 border border-[#E8A33D]/30 px-5 py-3 text-sm font-semibold text-[#E8A33D] hover:bg-[#E8A33D] hover:text-[#0F1720] transition-colors"
+                >
+                  <Pencil size={16} />
+                  İlanı Düzenle
+                </Link>
+
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-5 py-3 text-sm font-semibold text-red-400 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Siliniyor...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      İlanı Sil
+                    </>
+                  )}
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

@@ -14,7 +14,6 @@ export default function HouseListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Hook doğru şekilde burada tanımlandı
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [filters, setFilters] = useState({
@@ -25,26 +24,18 @@ export default function HouseListPage() {
     district: searchParams.get("district") || "",
   });
 
-const [options, setOptions] = useState({
-  cities: [],
-  districts: [],
-  number_of_rooms: [],
-});
+  const [options, setOptions] = useState({
+    cities: [],
+    districts: [],
+    number_of_rooms: [],
+  });
 
-  const defaultImages = [ // ev resimleri
-    "/house-1.jpg",
-    "/house-2.jpg",
-    "/house-3.jpg",
-    "/house-4.jpg",
-    "/house-5.jpg",
-    "/house-6.jpg",
-    "/house-7.jpg",
-    "/house-8.jpg",
-    "/house-9.jpg",
-    "/house-10.jpg",
+  const defaultImages = [
+    "/house-1.jpg", "/house-2.jpg", "/house-3.jpg", "/house-4.jpg", "/house-5.jpg",
+    "/house-6.jpg", "/house-7.jpg", "/house-8.jpg", "/house-9.jpg", "/house-10.jpg",
   ];
 
-  useEffect(() => { // Tüm evleri çek ve filters dagönder
+  useEffect(() => {
     setLoading(true);
     setError(null);
 
@@ -54,35 +45,34 @@ const [options, setOptions] = useState({
       .finally(() => setLoading(false));
   }, [filters]);
 
-  useEffect(() => { // house dropdown
-  const params = filters.city ? { city: filters.city } : {};
-  fetchListings("/house-options/", params)
-    .then((data) => {
-      setOptions({
-        cities: data.cities || [],
-        districts: data.districts || [],
-        number_of_rooms: data.number_of_rooms || [],
-      });
-    })
-    .catch((err) => console.error("Filtre seçenekleri alınamadı:", err));
-}, [filters.city]);
-
+  useEffect(() => {
+    const params = filters.city ? { city: filters.city } : {};
+    fetchListings("/house-options/", params)
+      .then((data) => {
+        setOptions({
+          cities: data.cities || [],
+          districts: data.districts || [],
+          number_of_rooms: data.number_of_rooms || [],
+        });
+      })
+      .catch((err) => console.error("Filtre seçenekleri alınamadı:", err));
+  }, [filters.city]);
 
   const handleChange = (field) => (e) => {
-  const newValue = e.target.value;
-  setFilters((prev) => {
-    const updated = {
-      ...prev,
-      [field]: newValue,
-      ...(field === "city" ? { district: "" } : {}),
-    };
-    const cleanParams = Object.fromEntries(
-      Object.entries(updated).filter(([_, v]) => v !== "")
-    );
-    setSearchParams(cleanParams);
-    return updated;
-  });
-};
+    const newValue = e.target.value;
+    setFilters((prev) => {
+      const updated = {
+        ...prev,
+        [field]: newValue,
+        ...(field === "city" ? { district: "" } : {}),
+      };
+      const cleanParams = Object.fromEntries(
+        Object.entries(updated).filter(([_, v]) => v !== "")
+      );
+      setSearchParams(cleanParams);
+      return updated;
+    });
+  };
 
   const formatTitle = (title) => {
     if (!title) return "";
@@ -117,11 +107,20 @@ const [options, setOptions] = useState({
               </p>
             </div>
 
-            {!loading && houses.length > 0 && (
-              <span className="w-fit rounded-lg border border-[#232E3D] bg-[#161F2B] px-3 py-1.5 text-xs font-medium text-[#8B95A3]">
-                {houses.length} sonuç
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              <Link
+                to="/ev-ilan-olustur"
+                className="rounded-lg bg-[#E8A33D] px-4 py-2 text-sm font-semibold text-[#0F1720] hover:bg-[#F0B058] transition-colors"
+              >
+                + İlan Oluştur
+              </Link>
+
+              {!loading && houses.length > 0 && (
+                <span className="w-fit rounded-lg border border-[#232E3D] bg-[#161F2B] px-3 py-1.5 text-xs font-medium text-[#8B95A3]">
+                  {houses.length} sonuç
+                </span>
+              )}
+            </div>
           </div>
         </header>
 
@@ -138,10 +137,6 @@ const [options, setOptions] = useState({
               </div>
 
               <div className="flex flex-col space-y-4">
-
-                
-                {/* Filtrelerim */}
-                 {/* Oda Sayısı Dropdown */}
                 <FilterSelect
                   label="Oda Sayısı"
                   value={filters.number_of_rooms}
@@ -159,7 +154,6 @@ const [options, setOptions] = useState({
                   })}
                 </FilterSelect>
 
-                {/* Şehir Dropdown */}
                 <FilterSelect
                   label="Şehir"
                   value={filters.city}
@@ -194,101 +188,66 @@ const [options, setOptions] = useState({
                   })}
                 </FilterSelect>
 
-                 {/* Fiyat İnputları */}
-                  <FilterInput
-                    label="Min. Fiyat"
-                    type="number"
-                    placeholder="0"
-                    value={filters.price_min}
-                    onChange={handleChange("price_min")}
-                  />
-                  <FilterInput
-                    label="Max. Fiyat"
-                    type="number"
-                    placeholder="1.000.000"
-                    value={filters.price_max}
-                    onChange={handleChange("price_max")}
-                  />
-
+                <FilterInput
+                  label="Min. Fiyat"
+                  type="number"
+                  placeholder="0"
+                  value={filters.price_min}
+                  onChange={handleChange("price_min")}
+                />
+                <FilterInput
+                  label="Max. Fiyat"
+                  type="number"
+                  placeholder="1.000.000"
+                  value={filters.price_max}
+                  onChange={handleChange("price_max")}
+                />
               </div>
             </div>
           </aside>
 
           {/* Listings */}
           <main className="min-w-0 flex-1">
-
-            {/* Loading */}
             {loading && (
               <div className="flex min-h-[400px] flex-col items-center justify-center text-[#8B95A3]">
-                <Loader2
-                  size={32}
-                  className="mb-3 animate-spin text-[#E8A33D]"
-                />
-
-                <p className="text-sm font-medium">
-                  İlanlar aranıyor...
-                </p>
+                <Loader2 size={32} className="mb-3 animate-spin text-[#E8A33D]" />
+                <p className="text-sm font-medium">İlanlar aranıyor...</p>
               </div>
             )}
 
-            {/* Error */}
             {error && (
               <div className="rounded-xl border border-[#E88080]/30 bg-[#E88080]/10 p-5 text-center text-[#E88080]">
-                <p className="text-sm font-medium">
-                  Hata: {error}
-                </p>
+                <p className="text-sm font-medium">Hata: {error}</p>
               </div>
             )}
 
-            {/* Empty */}
             {!loading && !error && houses.length === 0 && (
               <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-dashed border-[#2B3747] bg-[#161F2B]/40 p-10 text-center">
-                <SearchX
-                  size={42}
-                  className="mb-4 text-[#667384]"
-                />
-
-                <h3 className="text-lg font-semibold text-[#EDEFF2]">
-                  İlan Bulunamadı
-                </h3>
-
+                <SearchX size={42} className="mb-4 text-[#667384]" />
+                <h3 className="text-lg font-semibold text-[#EDEFF2]">İlan Bulunamadı</h3>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#8B95A3]">
-                  Filtrelerinize uygun ev bulunamadı.
-                  Filtreleri değiştirerek tekrar deneyebilirsiniz.
+                  Filtrelerinize uygun ev bulunamadı. Filtreleri değiştirerek tekrar deneyebilirsiniz.
                 </p>
               </div>
             )}
 
-            {/* House Grid - Geniş ekranlar için kolon sayıları artırıldı */}
             {!loading && !error && houses.length > 0 && (
               <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
                 {houses.map((house) => (
-                  <Link
-                    to={`/house/${house.id}`}
-                    key={house.id}
-                    className="group min-w-0"
-                  >
+                  <Link to={`/house/${house.id}`} key={house.id} className="group min-w-0">
                     <div className="relative mb-2 aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#232E3D] bg-[#161F2B] transition-all duration-300 group-hover:border-[#4A5568] group-hover:shadow-lg group-hover:shadow-black/10">
                       <img
-                        src={
-                          house.imageUrl ||
-                          defaultImages[Math.floor(Math.random() * defaultImages.length)]
-                        }
+                        src={house.imageUrl || defaultImages[house.id % defaultImages.length]}
                         alt={house.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                     </div>
 
-                    <h2
-                      className="px-1 text-xs font-medium leading-5 text-[#8B95A3] transition-colors group-hover:text-[#E8A33D]"
-                      title={house.title}
-                    >
+                    <h2 className="px-1 text-xs font-medium leading-5 text-[#8B95A3] transition-colors group-hover:text-[#E8A33D]" title={house.title}>
                       {formatTitle(house.title)}
                     </h2>
 
-                    {/* Şehir ve Semt Bilgisi */}
                     {(house.city || house.district) && (
                       <p className="px-1 mt-0.5 text-[11px] text-[#667384]">
                         {[house.city, house.district].filter(Boolean).join(", ")}
@@ -298,7 +257,6 @@ const [options, setOptions] = useState({
                 ))}
               </div>
             )}
-
           </main>
         </div>
       </div>

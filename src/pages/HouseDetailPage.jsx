@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2, MapPin, Trash2, Pencil } from "lucide-react";
 import { fetchListings } from "../api";
 
 const defaultImages = [
@@ -10,9 +10,11 @@ const defaultImages = [
 
 export default function HouseDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [house, setHouse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -23,6 +25,46 @@ export default function HouseDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Oturum açmış kullanıcının bilgilerini ve Token'ını alıyoruz
+  const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
+  const storedUser = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
+  const currentUserId = storedUser?.id || storedUser?.pk || localStorage.getItem("user_id") || localStorage.getItem("userId");
+
+  // Kullanıcı giriş yapmışsa ve ilan sahibiyle eşleşiyorsa (veya token varsa) yetkili kabul edilir
+  const isOwner = Boolean(token) && (!currentUserId || String(currentUserId) === String(house?.listing_owner));
+
+  const handleDelete = async () => {
+    if (!window.confirm("Bu ev ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8001/api";
+      
+      const response = await fetch(`${API_URL}/listings/house/${id}/`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+      });
+
+      const resData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const errorMessage = resData.detail || resData.hata || resData.message || "İlan silinemedi.";
+        throw new Error(errorMessage);
+      }
+
+      alert("Ev ilanı başarıyla silindi.");
+      navigate("/all-houses"); // Silindikten sonra ev listesine yönlendir
+    } catch (err) {
+      alert(`Hata: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -45,7 +87,7 @@ export default function HouseDetailPage() {
 
   const image = defaultImages[house.id % defaultImages.length];
 
-  const details = [ // tabladoki gösterilcek bilgiler
+  const details = [ // Tabloda gösterilecek bilgiler
     { label: "İlan No", value: house.id },
     { label: "İlan Tarihi", value: house.listing_date },
     { label: "Oda Sayısı", value: house.number_of_rooms },
@@ -77,7 +119,7 @@ export default function HouseDetailPage() {
         )}
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sol: görsel */}
+          {/* Sol: görsel ve fiyat */}
           <div className="lg:w-[55%] shrink-0">
             <div className="rounded-xl overflow-hidden border border-[#232E3D] bg-[#161F2B] aspect-[4/3]">
               <img src={image} alt={house.title} className="w-full h-full object-cover" />
@@ -90,19 +132,52 @@ export default function HouseDetailPage() {
             </div>
           </div>
 
-          {/* Sağ: key-value tablo */}
-          <div className="flex-1 rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
-            {details.map((d, i) => (
-              <div
-                key={d.label}
-                className={`flex justify-between px-5 py-3 text-sm ${
-                  i % 2 === 0 ? "bg-[#161F2B]" : "bg-[#1A2430]"
-                }`}
-              >
-                <span className="text-[#8B95A3]">{d.label}</span>
-                <span className="text-[#EDEFF2] font-medium text-right">{d.value}</span>
+          {/* Sağ: key-value tablo + Aksiyon Butonları (Düzenle & Sil) */}
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
+              {details.map((d, i) => (
+                <div
+                  key={d.label}
+                  className={`flex justify-between px-5 py-3 text-sm ${
+                    i % 2 === 0 ? "bg-[#161F2B]" : "bg-[#1A2430]"
+                  }`}
+                >
+                  <span className="text-[#8B95A3]">{d.label}</span>
+                  <span className="text-[#EDEFF2] font-medium text-right">{d.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* İlan Sahibine Özel Aksiyonlar (Düzenle & Sil) */}
+            {isOwner && (
+              <div className="flex gap-3">
+                <Link
+                  to={`/ev-ilan-guncelle/${house.id}`}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#E8A33D]/10 border border-[#E8A33D]/30 px-5 py-3 text-sm font-semibold text-[#E8A33D] hover:bg-[#E8A33D] hover:text-[#0F1720] transition-colors"
+                >
+                  <Pencil size={16} />
+                  İlanı Düzenle
+                </Link>
+
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-5 py-3 text-sm font-semibold text-red-400 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Siliniyor...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      İlanı Sil
+                    </>
+                  )}
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
