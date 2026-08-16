@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, MapPin, Trash2, Pencil } from "lucide-react";
-import { fetchListings } from "../api";
+import { fetchListings } from "../../api";
 
 const defaultImages = [
-  "/car-1.jpg", "/car-2.jpg", "/car-3.jpg", "/car-4.jpg", "/car-5.jpg",
-  "/car-6.jpg", "/car-7.jpg", "/car-8.jpg", "/car-9.jpg", "/car-10.jpg",
+  "/house-1.jpg", "/house-2.jpg", "/house-3.jpg", "/house-4.jpg", "/house-5.jpg",
+  "/house-6.jpg", "/house-7.jpg", "/house-8.jpg", "/house-9.jpg", "/house-10.jpg",
 ];
 
-export default function CarDetailPage() {
+export default function HouseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [car, setCar] = useState(null);
+  const [house, setHouse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -19,8 +19,8 @@ export default function CarDetailPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchListings(`/car/${id}/`)
-      .then(setCar)
+    fetchListings(`/house/${id}/`)
+      .then(setHouse)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
@@ -31,30 +31,34 @@ export default function CarDetailPage() {
   const currentUserId = storedUser?.id || storedUser?.pk || localStorage.getItem("user_id") || localStorage.getItem("userId");
 
   // Kullanıcı giriş yapmışsa ve ilan sahibiyle eşleşiyorsa (veya token varsa) yetkili kabul edilir
-  const isOwner = Boolean(token) && (!currentUserId || String(currentUserId) === String(car?.listing_owner));
+  const isOwner = Boolean(token) && (!currentUserId || String(currentUserId) === String(house?.listing_owner));
 
-  const handleDelete = async () => {  // ilan silme fonksiyonu
-    if (!window.confirm("Bu ilanı silmek istediğinize emin misiniz?")) return;
+  const handleDelete = async () => {
+    if (!window.confirm("Bu ev ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
-      
       const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8001/api";
       
-      const response = await fetch(`${API_URL}/listings/car/${id}/`, {
+      const response = await fetch(`${API_URL}/listings/house/${id}/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
       });
+
       const resData = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const errorMessage = resData.detail || resData.hata || resData.message || JSON.stringify(resData);
-        throw new Error(`[HTTP ${response.status}] ${errorMessage}`);
+        const errorMessage = resData.detail || resData.hata || resData.message || "İlan silinemedi.";
+        throw new Error(errorMessage);
       }
-      alert("İlan başarıyla silindi.");
-      navigate("/all-cars");
+
+      alert("Ev ilanı başarıyla silindi.");
+      navigate("/all-houses"); // Silindikten sonra ev listesine yönlendir
     } catch (err) {
       alert(`Hata: ${err.message}`);
     } finally {
@@ -70,79 +74,65 @@ export default function CarDetailPage() {
     );
   }
 
-  if (error || !car) {
+  if (error || !house) {
     return (
       <div className="min-h-screen bg-[#0F1720] flex flex-col items-center justify-center text-[#8B95A3]">
         <p className="mb-4">İlan bulunamadı.</p>
-        <Link to="/all-cars" className="text-[#E8A33D] text-sm hover:underline">
-          Araç listesine dön
+        <Link to="/all-houses" className="text-[#E8A33D] text-sm hover:underline">
+          Ev listesine dön
         </Link>
       </div>
     );
   }
 
-  const image = defaultImages[car.id % defaultImages.length];
+  const image = defaultImages[house.id % defaultImages.length];
 
-  // Tabloda gösterilecek key-value çiftleri
-  const details = [
-    { label: "İlan No", value: car.id },
-    { label: "İlan Tarihi", value: car.listing_date },
-    { label: "Marka", value: car.brand },
-    { label: "Seri", value: car.series },
-    { label: "Model", value: car.model },
-    { label: "Yıl", value: car.year },
-    { label: "Yakıt Tipi", value: car.fuel_type },
-    { label: "Vites", value: car.transmission_type },
-    { label: "Araç Durumu", value: car.status },
-    { label: "KM", value: car.km ? Number(car.km).toLocaleString("tr-TR") : null },
-    { label: "Kasa Tipi", value: car.body_type },
-    { label: "Motor Gücü", value: car.engine_power },
-    { label: "Motor Hacmi", value: car.engine_size },
-    { label: "Çekiş", value: car.traction },
-    { label: "Renk", value: car.color },
-    { label: "Ort. Yakıt Tüketimi", value: car.avg_fuel_consumption },
-    { label: "Yakıt Deposu", value: car.fuel_tank },
-    { label: "Boyalı/Değişen", value: car.changed_parts },
-    { label: "Takasa Uygun", value: car.for_trade ? "Evet" : "Hayır" },
-    { label: "Kimden", value: car.from_whom },
-    { label: "Tramer", value: car.tramer ? `${Number(car.tramer).toLocaleString("tr-TR")} TL` : null },
+  const details = [ // Tabloda gösterilecek bilgiler
+    { label: "İlan No", value: house.id },
+    { label: "İlan Tarihi", value: house.listing_date },
+    { label: "Oda Sayısı", value: house.number_of_rooms },
+    { label: "Metrekare", value: house.meter_squared ? `${house.meter_squared} m²` : null },
+    { label: "Bina Yaşı", value: house.building_aged },
+    { label: "Bulunduğu Kat", value: house.floor },
+    { label: "Toplam Kat Sayısı", value: house.number_of_floors },
+    { label: "Krediye Uygunluk", value: house.credit_eligibility ? "Evet" : "Hayır" },
   ].filter((d) => d.value !== null && d.value !== undefined && d.value !== "");
 
   return (
     <div className="min-h-screen bg-[#0F1720] px-4 py-5 text-[#EDEFF2] sm:px-6 lg:px-8 lg:py-7">
       <div className="max-w-5xl mx-auto">
         <Link
-          to="/all-cars"
+          to="/all-houses"
           className="group mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#8B95A3] transition-colors hover:text-[#EDEFF2]"
         >
           <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
-          Araç ilanlarına dön
+          Ev ilanlarına dön
         </Link>
 
         <h1 className="text-xl sm:text-2xl font-bold text-[#EDEFF2] mb-1">
-          {car.title || `${car.brand} ${car.model}`}
+          {house.title || `${house.number_of_rooms || ""} ${house.location || ""}`.trim()}
         </h1>
-        {car.location && (
+        {house.location && (
           <p className="flex items-center gap-1.5 text-sm text-[#8B95A3] mb-6">
-            <MapPin size={14} /> {car.location}
+            <MapPin size={14} /> {house.location}
           </p>
         )}
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sol: Görsel ve Fiyat */}
+          {/* Sol: görsel ve fiyat */}
           <div className="lg:w-[55%] shrink-0">
             <div className="rounded-xl overflow-hidden border border-[#232E3D] bg-[#161F2B] aspect-[4/3]">
-              <img src={image} alt={car.title} className="w-full h-full object-cover" />
+              <img src={image} alt={house.title} className="w-full h-full object-cover" />
             </div>
             <div className="mt-4 rounded-xl border border-[#232E3D] bg-[#161F2B] p-5">
               <p className="text-xs text-[#8B95A3] mb-1">Fiyat</p>
               <p className="text-2xl font-bold text-[#E8A33D]">
-                {car.price ? `${Number(car.price).toLocaleString("tr-TR")} TL` : "Belirtilmemiş"}
+                {house.price ? `${Number(house.price).toLocaleString("tr-TR")} TL` : "Belirtilmemiş"}
               </p>
             </div>
           </div>
 
-          {/* Sağ: Key-Value Tablo + Aksiyon Butonları (Düzenle & Sil) */}
+          {/* Sağ: key-value tablo + Aksiyon Butonları (Düzenle & Sil) */}
           <div className="flex-1 flex flex-col gap-4">
             <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
               {details.map((d, i) => (
@@ -158,11 +148,11 @@ export default function CarDetailPage() {
               ))}
             </div>
 
-            {/* İlan Sahibine Özel Aksiyonlar */}
+            {/* İlan Sahibine Özel Aksiyonlar (Düzenle & Sil) */}
             {isOwner && (
               <div className="flex gap-3">
                 <Link
-                  to={`/araba-ilan-guncelle/${car.id}`}
+                  to={`/ev-ilan-guncelle/${house.id}`}
                   className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#E8A33D]/10 border border-[#E8A33D]/30 px-5 py-3 text-sm font-semibold text-[#E8A33D] hover:bg-[#E8A33D] hover:text-[#0F1720] transition-colors"
                 >
                   <Pencil size={16} />

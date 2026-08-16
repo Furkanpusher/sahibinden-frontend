@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Car, CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { fetchListings } from "../api";
+import { fetchListings } from "../../api";
 
 const TRANSMISSION_OPTIONS = ["manuel", "otomatik", "yarı otomatik"];
 const FUEL_OPTIONS = ["Benzin", "Dizel", "LPG", "Elektrik", "Hibrit"];

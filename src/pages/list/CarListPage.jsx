@@ -6,8 +6,8 @@ import {
   Loader2,
   SearchX,
 } from "lucide-react";
-import { fetchListings } from "../api";
-import { FilterInput, FilterSelect } from "../components/ListingUI"; // hem input alabilcem hemde dropdowni çin select
+import { fetchListings } from "../../api";
+import { FilterInput, FilterSelect } from "../../components/ListingUI"; // hem input alabilcem hemde dropdowni çin select
 
 
   const defaultImages = [

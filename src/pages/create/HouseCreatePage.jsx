@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Home, CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { postListing } from "../api";
+import { postListing } from "../../api";
 
 const ROOM_OPTIONS = ["1+0", "1+1", "2+1", "3+1", "4+1", "5+1", "Dupleks"];
 const BUILDING_AGE_OPTIONS = ["0 (Yeni)", "1-5", "6-10", "11-15", "16-20", "21 ve üzeri"];

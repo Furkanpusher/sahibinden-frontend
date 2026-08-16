@@ -6,8 +6,8 @@ import {
   Loader2,
   SearchX,
 } from "lucide-react";
-import { fetchListings } from "../api";
-import { FilterInput, FilterSelect } from "../components/ListingUI";
+import { fetchListings } from "../../api";
+import { FilterInput, FilterSelect } from "../../components/ListingUI";
 
 export default function HouseListPage() {
   const [houses, setHouses] = useState([]);
