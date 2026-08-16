@@ -28,10 +28,16 @@ export default function HouseDetailPage() {
   // Oturum açmış kullanıcının bilgilerini ve Token'ını alıyoruz
   const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
   const storedUser = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
-  const currentUserId = storedUser?.id || storedUser?.pk || localStorage.getItem("user_id") || localStorage.getItem("userId");
+  const currentUserId = localStorage.getItem("user_id") || storedUser?.id || storedUser?.pk || localStorage.getItem("userId");
 
-  // Kullanıcı giriş yapmışsa ve ilan sahibiyle eşleşiyorsa (veya token varsa) yetkili kabul edilir
-  const isOwner = Boolean(token) && (!currentUserId || String(currentUserId) === String(house?.listing_owner));
+  // İlan sahibinin ID'sini güvenli şekilde çekiyoruz
+  const ownerId = house?.listing_owner?.id || house?.listing_owner?.pk || house?.listing_owner;
+
+  // token varsa, kullanıcı IDsi varsa, ve ilan sahibiyse true döncek
+  const isOwner = Boolean(token) && 
+                  Boolean(currentUserId) && 
+                  Boolean(ownerId) && 
+                  String(currentUserId) === String(ownerId);
 
   const handleDelete = async () => {
     if (!window.confirm("Bu ev ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
@@ -40,6 +46,7 @@ export default function HouseDetailPage() {
 
     setIsDeleting(true);
     try {
+      const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
       const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8001/api";
       
       const response = await fetch(`${API_URL}/listings/house/${id}/`, {
@@ -58,7 +65,7 @@ export default function HouseDetailPage() {
       }
 
       alert("Ev ilanı başarıyla silindi.");
-      navigate("/all-houses"); // Silindikten sonra ev listesine yönlendir
+      navigate("/all-houses");
     } catch (err) {
       alert(`Hata: ${err.message}`);
     } finally {
@@ -87,7 +94,7 @@ export default function HouseDetailPage() {
 
   const image = defaultImages[house.id % defaultImages.length];
 
-  const details = [ // Tabloda gösterilecek bilgiler
+  const details = [
     { label: "İlan No", value: house.id },
     { label: "İlan Tarihi", value: house.listing_date },
     { label: "Oda Sayısı", value: house.number_of_rooms },
@@ -119,7 +126,6 @@ export default function HouseDetailPage() {
         )}
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sol: görsel ve fiyat */}
           <div className="lg:w-[55%] shrink-0">
             <div className="rounded-xl overflow-hidden border border-[#232E3D] bg-[#161F2B] aspect-[4/3]">
               <img src={image} alt={house.title} className="w-full h-full object-cover" />
@@ -132,7 +138,6 @@ export default function HouseDetailPage() {
             </div>
           </div>
 
-          {/* Sağ: key-value tablo + Aksiyon Butonları (Düzenle & Sil) */}
           <div className="flex-1 flex flex-col gap-4">
             <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
               {details.map((d, i) => (
@@ -148,7 +153,7 @@ export default function HouseDetailPage() {
               ))}
             </div>
 
-            {/* İlan Sahibine Özel Aksiyonlar (Düzenle & Sil) */}
+            {/* SADECE İLAN SAHİBİNE ÖZEL BUTONLAR */}
             {isOwner && (
               <div className="flex gap-3">
                 <Link

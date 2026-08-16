@@ -28,10 +28,25 @@ export default function CarDetailPage() {
   // Oturum açmış kullanıcının bilgilerini ve Token'ını alıyoruz
   const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
   const storedUser = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
-  const currentUserId = storedUser?.id || storedUser?.pk || localStorage.getItem("user_id") || localStorage.getItem("userId");
+  const currentUserId = localStorage.getItem("user_id") || storedUser?.id || storedUser?.pk || localStorage.getItem("userId");
 
-  // Kullanıcı giriş yapmışsa ve ilan sahibiyle eşleşiyorsa (veya token varsa) yetkili kabul edilir
-  const isOwner = Boolean(token) && (!currentUserId || String(currentUserId) === String(car?.listing_owner));
+  // İlan sahibinin ID'sini güvenli şekilde çekiyoruz (Obje veya sayı/string olma ihtimaline karşı)
+  const ownerId = car?.listing_owner?.id || car?.listing_owner?.pk || car?.listing_owner;
+
+  // token varsa, kullanıcı IDsi varsa, ve ilan sahibiyse true döncek
+  const isOwner = Boolean(token) && 
+                  Boolean(currentUserId) && 
+                  Boolean(ownerId) && 
+                  String(currentUserId) === String(ownerId);
+
+  // 🔹 TARAYICI KONSOLUNDA (F12) DETAYLARI İNCELEMEK İÇİN:
+  if (car) {
+    console.log("=== İZİN DEDEKTİFİ ===");
+    console.log("Token:", token ? "Mevcut ✅" : "Yok ❌");
+    console.log("Giriş yapan Kullanıcı ID (localStorage):", currentUserId);
+    console.log("İlan Sahibi ID (Backend):", ownerId);
+    console.log("Kendi ilanı mı?:", isOwner);
+  }
 
   const handleDelete = async () => {  // ilan silme fonksiyonu
     if (!window.confirm("Bu ilanı silmek istediğinize emin misiniz?")) return;

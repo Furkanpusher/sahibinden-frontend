@@ -13,7 +13,7 @@ export default function AuthPage() {
     email: "",
     phone_number: "",
   });
-  const [status, setStatus] = useState(null); // { type: "success"|"error", message, detail }
+  const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field) => (e) =>
@@ -25,7 +25,7 @@ export default function AuthPage() {
     setStatus(null);
 
     const endpoint = mode === "login" ? "/login/" : "/register/";
-    const payload = // payload burda gidiyor
+    const payload =
       mode === "login"
         ? { username: form.username, password: form.password }
         : form;
@@ -40,17 +40,21 @@ export default function AuthPage() {
 
       if (res.ok) {
         if (mode === "login") {
-          // Token'ları sakla - sonraki isteklerde Authorization header'ında kullanılacak
-          localStorage.setItem("access_token", data.access);
-          localStorage.setItem("refresh_token", data.refresh);
+          // Token'ları ve Kullanıcı Bilgilerini Sakla
+          const token = data.access || data.access_token;
+          localStorage.setItem("access_token", token);
+          localStorage.setItem("access", token);
+          localStorage.setItem("refresh_token", data.refresh || data.refresh_token);
+
+          if (data.user_id) localStorage.setItem("user_id", String(data.user_id));
+          if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
 
           setStatus({
             type: "success",
             message: "Giriş başarılı, yönlendiriliyorsun...",
-            detail: data.access,
+            detail: token,
           });
 
-          // Kısa bir gecikmeyle ana sayfaya yönlendir
           setTimeout(() => navigate("/"), 600);
         } else {
           setStatus({
@@ -79,7 +83,6 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#0F1720] p-6">
       <div className="w-full max-w-md">
-        {/* Marka başlığı */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded bg-[#E8A33D] flex items-center justify-center font-bold text-[#0F1720] text-sm">
@@ -93,7 +96,6 @@ export default function AuthPage() {
         </div>
 
         <div className="bg-[#161F2B] border border-[#232E3D] rounded-2xl overflow-hidden shadow-2xl">
-          {/* Sekme geçişi */}
           <div className="flex border-b border-[#232E3D]">
             <button
               onClick={() => {
