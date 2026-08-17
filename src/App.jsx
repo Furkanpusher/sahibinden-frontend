@@ -10,6 +10,11 @@ import HouseCreatePage from "./pages/create/HouseCreatePage.jsx";
 import CarUpdatePage from "./pages/update/CarUpdatePage.jsx";
 import HouseUpdatePage from "./pages/update/HouseUpdatePage.jsx";
 import StaffReportsPage from "./pages/staff/StaffReportsPage.jsx"; 
+import UserFavoritesPage from "./pages/profile/UserFavoritesPage.jsx"
+import UserListingsPage from "./pages/profile/UserListingsPage.jsx"
+import UserReportsPage from "./pages/profile/UserReportsPage.jsx"
+
+
 
 
 export default function App() {
@@ -29,6 +34,13 @@ export default function App() {
 
          {/* Staff routeları */}
         <Route path="/staff/reports" element={<StaffReportsPage />} /> 
+
+        {/* Profile routers */}
+
+        <Route path="/favorilerim" element={<UserFavoritesPage />} />
+        <Route path="/ilanlarim" element={<UserListingsPage />} />
+        <Route path="/raporlarim" element={<UserReportsPage />} />
+
 
       </Routes>
     </BrowserRouter>

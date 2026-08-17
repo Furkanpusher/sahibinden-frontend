@@ -1,16 +1,22 @@
 import { Car, Home as HomeIcon, ArrowRight, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
+import UserMenu from "../../components/UserMenu";
 
 export default function HomePage() { 
   const isStaff = localStorage.getItem("is_staff") === "true"; // STAFF PANELİ
 
   return (
-    <div className="min-h-screen bg-[#0F1720] text-[#EDEFF2] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-center">
+    <div className="min-h-screen bg-[#0F1720] text-[#EDEFF2] px-4 py-6 sm:px-6 lg:px-8">
+      {/* Üst Sağ Profil / Giriş Barı */}
+      <div className="mx-auto max-w-6xl flex justify-end items-center mb-4">
+        <UserMenu />
+      </div>
+
+      <div className="mx-auto flex min-h-[calc(100svh-8rem)] w-full max-w-6xl flex-col justify-center items-center">
         
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <div className="mb-5 inline-flex items-center gap-3">
+        {/* Header (Tam Ortalanmış Flex Kapsayıcı) */}
+        <div className="mb-14 w-full flex flex-col items-center text-center">
+          <div className="mb-5 inline-flex items-center justify-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8A33D] text-base font-bold text-[#0F1720] shadow-lg shadow-[#E8A33D]/10">
               İ
             </div>
@@ -19,17 +25,21 @@ export default function HomePage() {
             </span>
           </div>
 
-          <h1 className="text-3xl font-bold tracking-tight text-[#EDEFF2] sm:text-4xl lg:text-5xl">
+          <h1 className="text-3xl font-bold tracking-tight text-[#EDEFF2] sm:text-4xl lg:text-5xl text-center">
             Ne arıyorsun?
           </h1>
+          {/* 🎯 Araya 32px'lik net dikey boşluk kutusu */}
+          
+          <div style={{ height: "32px" }} />
 
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#8B95A3] sm:text-base">
+          <p className="max-w-xl text-center text-sm leading-6 text-[#8B95A3] sm:text-base">
             Aradığın kategoriyi seç, ilanlar arasında filtreleyerek ihtiyacına uygun ilanları kolayca bul.
           </p>
 
-          {/* 🛡️ Sadece Staff ise görünen minik link */}
+
+          {/* 🛡️ Sadece Staff ise görünen link */}
           {isStaff && (
-            <div className="mt-4">
+            <div className="mt-4 flex justify-center">
               <Link
                 to="/staff/reports"
                 className="inline-flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-500 hover:text-white transition-colors"
@@ -42,7 +52,7 @@ export default function HomePage() {
         </div>
 
         {/* Categories */}
-        <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-2">
           <CategoryCard
             to="/all-cars"
             icon={<Car size={28} />}

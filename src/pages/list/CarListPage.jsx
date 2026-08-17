@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { fetchListings } from "../../api";
 import { FilterInput, FilterSelect } from "../../components/ListingUI";
+import UserMenu from "../../components/UserMenu";
 
 const defaultImages = [
   "/car-1.jpg", "/car-2.jpg", "/car-3.jpg", "/car-4.jpg", "/car-5.jpg",
@@ -121,16 +122,21 @@ export default function CarListPage() {
       <div className="w-full">
         {/* Page Header */}
         <header className="mb-7 border-b border-[#232E3D] pb-5">
-          <Link
-            to="/"
-            className="group mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#8B95A3] transition-colors hover:text-[#EDEFF2]"
-          >
-            <ArrowLeft
-              size={16}
-              className="transition-transform duration-200 group-hover:-translate-x-1"
-            />
-            Ana sayfa
-          </Link>
+          {/* Üst Bar: Sol (Ana Sayfa) / Sağ (Profil / Menü) */}
+          <div className="flex items-center justify-between mb-5">
+            <Link
+              to="/"
+              className="group inline-flex items-center gap-2 text-sm font-medium text-[#8B95A3] transition-colors hover:text-[#EDEFF2]"
+            >
+              <ArrowLeft
+                size={16}
+                className="transition-transform duration-200 group-hover:-translate-x-1"
+              />
+              Ana sayfa
+            </Link>
+
+            <UserMenu />
+          </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -142,18 +148,20 @@ export default function CarListPage() {
               </p>
             </div>
 
-            <Link
-              to="/araba-ilan-olustur"
-              className="rounded-lg bg-[#E8A33D] px-4 py-2 text-sm font-semibold text-[#0F1720] hover:bg-[#F0B058] transition-colors"
-            >
-              + İlan Oluştur
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/araba-ilan-olustur"
+                className="rounded-lg bg-[#E8A33D] px-4 py-2 text-sm font-semibold text-[#0F1720] hover:bg-[#F0B058] transition-colors"
+              >
+                + İlan Oluştur
+              </Link>
 
-            {!loading && cars.length > 0 && (
-              <span className="w-fit rounded-lg border border-[#232E3D] bg-[#161F2B] px-3 py-1.5 text-xs font-medium text-[#8B95A3]">
-                {cars.length} sonuç
-              </span>
-            )}
+              {!loading && cars.length > 0 && (
+                <span className="w-fit rounded-lg border border-[#232E3D] bg-[#161F2B] px-3 py-1.5 text-xs font-medium text-[#8B95A3]">
+                  {cars.length} sonuç
+                </span>
+              )}
+            </div>
           </div>
         </header>
 
