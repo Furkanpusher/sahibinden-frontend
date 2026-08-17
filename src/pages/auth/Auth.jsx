@@ -49,6 +49,10 @@ export default function AuthPage() {
           if (data.user_id) localStorage.setItem("user_id", String(data.user_id));
           if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
 
+          // 🛡️ Staff (Yetkili) kontrolünü kaydet
+          const isStaff = Boolean(data.is_staff || data.user?.is_staff);
+          localStorage.setItem("is_staff", String(isStaff));
+
           setStatus({
             type: "success",
             message: "Giriş başarılı, yönlendiriliyorsun...",

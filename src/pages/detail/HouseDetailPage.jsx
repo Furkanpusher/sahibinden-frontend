@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, MapPin, Trash2, Pencil, Heart } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Trash2, Pencil, Heart, Flag, X } from "lucide-react";
 import { fetchListings } from "../../api";
 
 const defaultImages = [
@@ -20,6 +20,11 @@ export default function HouseDetailPage() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
 
+  // 🔹 Şikayet (Report) State'leri
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportDescription, setReportDescription] = useState("");
+  const [isReporting, setIsReporting] = useState(false);
+
   // Oturum açmış kullanıcının bilgilerini ve Token'ını alıyoruz
   const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
   const storedUser = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
@@ -32,7 +37,6 @@ export default function HouseDetailPage() {
     setLoading(true);
     setError(null);
 
-    // Ev detayını getir
     fetchListings(`/house/${id}/`)
       .then((data) => {
         setHouse(data);
@@ -64,7 +68,7 @@ export default function HouseDetailPage() {
   // İlan sahibinin ID'sini güvenli şekilde çekiyoruz
   const ownerId = house?.listing_owner?.id || house?.listing_owner?.pk || house?.listing_owner;
 
-  // token varsa, kullanıcı IDsi varsa, ve ilan sahibiyse true döner
+  // İlan sahibi mi kontrolü
   const isOwner = Boolean(token) && 
                   Boolean(currentUserId) && 
                   Boolean(ownerId) && 
@@ -94,12 +98,51 @@ export default function HouseDetailPage() {
         throw new Error(resData.detail || "Favori işlemi gerçekleştirilemedi.");
       }
 
-      // Backend'den dönen is_favorited (True / False) değerine göre kalbi güncelle
       setIsFavorited(resData.is_favorited);
     } catch (err) {
       alert(`Hata: ${err.message}`);
     } finally {
       setIsFavoriting(false);
+    }
+  };
+
+  // 🔹 ŞİKAYET ET (REPORT)
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!token) {
+      if (window.confirm("İlanı şikayet etmek için giriş yapmalısınız. Giriş sayfasına yönlendirilsin mi?")) {
+        navigate("/login");
+      }
+      return;
+    }
+
+    setIsReporting(true);
+    try {
+      const response = await fetch(`${API_URL}/listings/listing/${id}/report/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          description: reportDescription.trim(),
+        }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMsg = resData.detail || resData.non_field_errors?.[0] || "Şikayet iletilemedi.";
+        throw new Error(errorMsg);
+      }
+
+      alert("Şikayetiniz başarıyla iletildi. İncelenecektir.");
+      setIsReportModalOpen(false);
+      setReportDescription("");
+    } catch (err) {
+      alert(`Hata: ${err.message}`);
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -222,7 +265,7 @@ export default function HouseDetailPage() {
             </div>
           </div>
 
-          {/* Sağ: Key-Value Tablo + Aksiyon Butonları (Düzenle & Sil) */}
+          {/* Sağ: Key-Value Tablo + Aksiyon Butonları */}
           <div className="flex-1 flex flex-col gap-4">
             <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
               {details.map((d, i) => (
@@ -238,7 +281,7 @@ export default function HouseDetailPage() {
               ))}
             </div>
 
-            {/* SADECE İLAN SAHİBİNE ÖZEL BUTONLAR */}
+            {/* 🛠️ SADECE İLAN SAHİBİNE ÖZEL BUTONLAR */}
             {isOwner && (
               <div className="flex gap-3">
                 <Link
@@ -268,9 +311,83 @@ export default function HouseDetailPage() {
                 </button>
               </div>
             )}
+
+            {/* 🚩 DİĞER KULLANICILARA ÖZEL (İlanı Şikayet Et) */}
+            {!isOwner && (
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#161F2B] border border-[#232E3D] hover:border-red-500/40 px-4 py-2.5 text-xs font-medium text-[#8B95A3] hover:text-red-400 transition-all"
+                >
+                  <Flag size={14} />
+                  İlanı Şikayet Et
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* 🔹 ŞİKAYET MODALI */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#232E3D] bg-[#161F2B] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#EDEFF2] flex items-center gap-2">
+                <Flag size={18} className="text-red-400" />
+                İlanı Şikayet Et
+              </h3>
+              <button
+                onClick={() => setIsReportModalOpen(false)}
+                className="text-[#8B95A3] hover:text-[#EDEFF2] p-1 rounded-lg hover:bg-[#232E3D]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleReportSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-medium text-[#8B95A3] mb-1.5">
+                  Şikayet Gerekçeniz (Açıklama)
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="İlan ile ilgili şikayetinizi yazınız (örn: Hatalı fiyat, sahte ilan, ulaşılamıyor vb.)..."
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  className="w-full rounded-xl border border-[#232E3D] bg-[#0F1720] px-3.5 py-2.5 text-sm text-[#EDEFF2] placeholder-[#8B95A3]/50 focus:border-[#E8A33D] focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="rounded-xl border border-[#232E3D] px-4 py-2 text-xs font-medium text-[#8B95A3] hover:bg-[#232E3D] hover:text-[#EDEFF2] transition-colors"
+                >
+                  Vazgeç
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isReporting}
+                  className="flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
+                >
+                  {isReporting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Gönderiliyor...
+                    </>
+                  ) : (
+                    "Şikayeti Gönder"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
