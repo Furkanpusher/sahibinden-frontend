@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Home, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { postListing } from "../../api";
+import { getCities, getDistricts } from "../../data/helper";
 
 const ROOM_OPTIONS = ["1+0", "1+1", "2+1", "3+1", "4+1", "5+1", "Dupleks"];
 const BUILDING_AGE_OPTIONS = ["0 (Yeni)", "1-5", "6-10", "11-15", "16-20", "21 ve üzeri"];
@@ -26,9 +27,19 @@ export default function CreateHousePage() {
     credit_eligibility: false,
   });
 
+  // 🔹 Dropdown Verilerini Hazırla
+  const cities = useMemo(() => getCities(), []);
+  const districts = useMemo(() => getDistricts(form.city), [form.city]);
+
   const handleChange = (field) => (e) => {
     const val = e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    setForm((prev) => ({ ...prev, [field]: val }));
+    
+    setForm((prev) => ({
+      ...prev,
+      [field]: val,
+      // Şehir değişirse seçili ilçeyi sıfırla
+      ...(field === "city" ? { district: "" } : {}),
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -72,19 +83,65 @@ export default function CreateHousePage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <Section title="Temel Bilgiler">
             <Field label="İlan Başlığı *">
-              <input type="text" placeholder="Kadıköy Moda 3+1 Deniz Manzaralı Daire" value={form.title} onChange={handleChange("title")} required />
+              <input
+                type="text"
+                placeholder="Kadıköy Moda 3+1 Deniz Manzaralı Daire"
+                value={form.title}
+                onChange={handleChange("title")}
+                required
+              />
             </Field>
+
             <div className="grid grid-cols-2 gap-4">
               <Field label="Fiyat (₺) *">
-                <input type="number" placeholder="4500000" value={form.price} onChange={handleChange("price")} required />
+                <input
+                  type="number"
+                  placeholder="4500000"
+                  value={form.price}
+                  onChange={handleChange("price")}
+                  required
+                />
               </Field>
+
               <Field label="İlan Tarihi">
-                <input type="date" value={form.listing_date} onChange={handleChange("listing_date")} />
+                <input
+                  type="date"
+                  value={form.listing_date}
+                  onChange={handleChange("listing_date")}
+                />
               </Field>
             </div>
+
+            {/* 🏙️ ŞEHİR & İLÇE DROPDOWNLARI */}
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Şehir"><input placeholder="İstanbul" value={form.city} onChange={handleChange("city")} /></Field>
-              <Field label="İlçe"><input placeholder="Kadıköy" value={form.district} onChange={handleChange("district")} /></Field>
+              <Field label="Şehir *">
+                <select value={form.city} onChange={handleChange("city")} required>
+                  <option value="">Şehir Seçiniz</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="İlçe *">
+                <select
+                  value={form.district}
+                  onChange={handleChange("district")}
+                  disabled={!form.city}
+                  required
+                >
+                  <option value="">
+                    {form.city ? "İlçe Seçiniz" : "Önce Şehir Seçiniz"}
+                  </option>
+                  {districts.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </Field>
             </div>
           </Section>
 
@@ -93,11 +150,19 @@ export default function CreateHousePage() {
               <Field label="Oda Sayısı">
                 <select value={form.number_of_rooms} onChange={handleChange("number_of_rooms")}>
                   <option value="">Seçiniz</option>
-                  {ROOM_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {ROOM_OPTIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
                 </select>
               </Field>
+
               <Field label="Metrekare (m²)">
-                <input type="number" placeholder="125" value={form.meter_squared} onChange={handleChange("meter_squared")} />
+                <input
+                  type="number"
+                  placeholder="125"
+                  value={form.meter_squared}
+                  onChange={handleChange("meter_squared")}
+                />
               </Field>
             </div>
 
@@ -105,22 +170,38 @@ export default function CreateHousePage() {
               <Field label="Bina Yaşı">
                 <select value={form.building_aged} onChange={handleChange("building_aged")}>
                   <option value="">Seçiniz</option>
-                  {BUILDING_AGE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+                  {BUILDING_AGE_OPTIONS.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
                 </select>
               </Field>
+
               <Field label="Bulunduğu Kat">
                 <select value={form.floor} onChange={handleChange("floor")}>
                   <option value="">Seçiniz</option>
-                  {FLOOR_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  {FLOOR_OPTIONS.map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
                 </select>
               </Field>
+
               <Field label="Toplam Kat Sayısı">
-                <input type="number" placeholder="5" value={form.number_of_floors} onChange={handleChange("number_of_floors")} />
+                <input
+                  type="number"
+                  placeholder="5"
+                  value={form.number_of_floors}
+                  onChange={handleChange("number_of_floors")}
+                />
               </Field>
             </div>
 
             <label className="flex cursor-pointer items-center gap-2 select-none pt-2">
-              <input type="checkbox" checked={form.credit_eligibility} onChange={handleChange("credit_eligibility")} className="h-4 w-4 accent-[#E8A33D]" />
+              <input
+                type="checkbox"
+                checked={form.credit_eligibility}
+                onChange={handleChange("credit_eligibility")}
+                className="h-4 w-4 accent-[#E8A33D]"
+              />
               <span className="text-sm text-[#8B95A3]">Krediye Uygun</span>
             </label>
           </Section>
@@ -136,11 +217,18 @@ export default function CreateHousePage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading}
-            className="w-full rounded-lg bg-[#E8A33D] py-3 text-sm font-semibold text-[#0F1720] transition-colors hover:bg-[#F0B058] disabled:opacity-50">
-            {loading
-              ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Gönderiliyor...</span>
-              : "İlanı Yayınla"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-[#E8A33D] py-3 text-sm font-semibold text-[#0F1720] transition-colors hover:bg-[#F0B058] disabled:opacity-50"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 size={16} className="animate-spin" /> Gönderiliyor...
+              </span>
+            ) : (
+              "İlanı Yayınla"
+            )}
           </button>
         </form>
       </div>
@@ -169,6 +257,7 @@ function Field({ label, children }) {
         [&>select]:w-full [&>select]:rounded-lg [&>select]:border [&>select]:border-[#232E3D]
         [&>select]:bg-[#0F1720] [&>select]:px-3 [&>select]:py-2.5 [&>select]:text-sm
         [&>select]:text-[#EDEFF2] [&>select]:outline-none [&>select]:focus:border-[#E8A33D]
+        [&>select]:disabled:opacity-50 [&>select]:disabled:cursor-not-allowed
       ">
         {children}
       </div>

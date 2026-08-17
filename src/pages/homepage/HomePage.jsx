@@ -1,8 +1,8 @@
 import { Car, Home as HomeIcon, ArrowRight, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export default function HomePage() {
-  const isStaff = localStorage.getItem("is_staff") === "true";
+export default function HomePage() { 
+  const isStaff = localStorage.getItem("is_staff") === "true"; // STAFF PANELİ
 
   return (
     <div className="min-h-screen bg-[#0F1720] text-[#EDEFF2] px-4 py-8 sm:px-6 lg:px-8">

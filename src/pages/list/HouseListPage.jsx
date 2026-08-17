@@ -5,6 +5,8 @@ import {
   SlidersHorizontal,
   Loader2,
   SearchX,
+  RotateCcw,
+  Search,
 } from "lucide-react";
 import { fetchListings } from "../../api";
 import { FilterInput, FilterSelect } from "../../components/ListingUI";
@@ -16,13 +18,20 @@ export default function HouseListPage() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [filters, setFilters] = useState({
+  // 1. Sayfa ilk açıldığında URL'deki parametreleri başlangıç değeri yapıyoruz
+  const initialFilters = {
     number_of_rooms: searchParams.get("number_of_rooms") || "", 
     price_min: searchParams.get("price_min") || "",
     price_max: searchParams.get("price_max") || "",
     city: searchParams.get("city") || "",
     district: searchParams.get("district") || "",
-  });
+  };
+
+  // 🔹 TASLAK STATE: Kullanıcı formda seçim yaparken sadece bu güncellenir (istek gitmez)
+  const [tempFilters, setTempFilters] = useState(initialFilters);
+
+  // 🔹 UYGULANAN STATE: Sadece "Filtrele" butonuna basılınca güncellenir (istek tetikler)
+  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
   const [options, setOptions] = useState({
     cities: [],
@@ -35,18 +44,20 @@ export default function HouseListPage() {
     "/house-6.jpg", "/house-7.jpg", "/house-8.jpg", "/house-9.jpg", "/house-10.jpg",
   ];
 
+  // 1. API İsteği: Sadece `appliedFilters` değiştiğinde çalışır!
   useEffect(() => {
     setLoading(true);
     setError(null);
 
-    fetchListings("/all-houses/", filters)
+    fetchListings("/all-houses/", appliedFilters)
       .then(setHouses)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [filters]);
+  }, [appliedFilters]);
 
+  // 2. Şehir değiştikçe ilçe seçeneklerini güncelleme
   useEffect(() => {
-    const params = filters.city ? { city: filters.city } : {};
+    const params = tempFilters.city ? { city: tempFilters.city } : {};
     fetchListings("/house-options/", params)
       .then((data) => {
         setOptions({
@@ -56,22 +67,44 @@ export default function HouseListPage() {
         });
       })
       .catch((err) => console.error("Filtre seçenekleri alınamadı:", err));
-  }, [filters.city]);
+  }, [tempFilters.city]);
 
+  // Input ve Select değiştikçe SADECE taslak state'i (tempFilters) güncelliyoruz
   const handleChange = (field) => (e) => {
     const newValue = e.target.value;
-    setFilters((prev) => {
-      const updated = {
-        ...prev,
-        [field]: newValue,
-        ...(field === "city" ? { district: "" } : {}),
-      };
-      const cleanParams = Object.fromEntries(
-        Object.entries(updated).filter(([_, v]) => v !== "")
-      );
-      setSearchParams(cleanParams);
-      return updated;
-    });
+    setTempFilters((prev) => ({
+      ...prev,
+      [field]: newValue,
+      ...(field === "city" ? { district: "" } : {}), // Şehir değişirse seçili ilçeyi sıfırla
+    }));
+  };
+
+  // 🔹 "FİLTRELE" BUTONUNA BASILINCA ÇALIŞIR
+  const handleApplyFilters = (e) => {
+    if (e) e.preventDefault();
+
+    // 1. URL'i güncelle
+    const cleanParams = Object.fromEntries(
+      Object.entries(tempFilters).filter(([_, v]) => v !== "")
+    );
+    setSearchParams(cleanParams);
+
+    // 2. Uygulanan filtreleri güncelle ➔ useEffect tetiklenir ve TEK bir istek gider
+    setAppliedFilters(tempFilters);
+  };
+
+  // 🔹 "TEMİZLE" BUTONUNA BASILINCA ÇALIŞIR
+  const handleResetFilters = () => {
+    const emptyFilters = {
+      number_of_rooms: "",
+      price_min: "",
+      price_max: "",
+      city: "",
+      district: "",
+    };
+    setTempFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setSearchParams({});
   };
 
   const formatTitle = (title) => {
@@ -82,7 +115,6 @@ export default function HouseListPage() {
   return (
     <div className="min-h-screen bg-[#0F1720] px-4 py-5 text-[#EDEFF2] sm:px-6 lg:px-8 lg:py-7">
       <div className="w-full">
-
         {/* Page Header */}
         <header className="mb-7 border-b border-[#232E3D] pb-5">
           <Link
@@ -126,20 +158,33 @@ export default function HouseListPage() {
 
         {/* Main Layout */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-
           {/* Filter Sidebar */}
           <aside className="w-full shrink-0 lg:w-64 xl:w-72">
-            <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] p-5 lg:sticky lg:top-6">
+            <form
+              onSubmit={handleApplyFilters}
+              className="rounded-xl border border-[#232E3D] bg-[#161F2B] p-5 lg:sticky lg:top-6"
+            >
+              <div className="mb-5 flex items-center justify-between border-b border-[#232E3D] pb-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#EDEFF2]">
+                  <SlidersHorizontal size={16} />
+                  Filtrele
+                </div>
 
-              <div className="mb-5 flex items-center gap-2 border-b border-[#232E3D] pb-4 text-sm font-semibold text-[#EDEFF2]">
-                <SlidersHorizontal size={16} />
-                Filtrele
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="flex items-center gap-1 text-xs text-[#8B95A3] hover:text-[#E8A33D] transition-colors"
+                  title="Filtreleri Sıfırla"
+                >
+                  <RotateCcw size={12} />
+                  Temizle
+                </button>
               </div>
 
               <div className="flex flex-col space-y-4">
                 <FilterSelect
                   label="Oda Sayısı"
-                  value={filters.number_of_rooms}
+                  value={tempFilters.number_of_rooms}
                   onChange={handleChange("number_of_rooms")}
                 >
                   <option value="">Tüm Oda Sayıları</option>
@@ -156,7 +201,7 @@ export default function HouseListPage() {
 
                 <FilterSelect
                   label="Şehir"
-                  value={filters.city}
+                  value={tempFilters.city}
                   onChange={handleChange("city")}
                 >
                   <option value="">Tüm Şehirler</option>
@@ -173,8 +218,9 @@ export default function HouseListPage() {
 
                 <FilterSelect
                   label="Semt / İlçe"
-                  value={filters.district}
+                  value={tempFilters.district}
                   onChange={handleChange("district")}
+                  disabled={!tempFilters.city}
                 >
                   <option value="">Tüm İlçeler</option>
                   {options.districts.map((d) => {
@@ -192,18 +238,28 @@ export default function HouseListPage() {
                   label="Min. Fiyat"
                   type="number"
                   placeholder="0"
-                  value={filters.price_min}
+                  value={tempFilters.price_min}
                   onChange={handleChange("price_min")}
                 />
+                
                 <FilterInput
                   label="Max. Fiyat"
                   type="number"
                   placeholder="1.000.000"
-                  value={filters.price_max}
+                  value={tempFilters.price_max}
                   onChange={handleChange("price_max")}
                 />
+
+                {/* 🚀 FİLTRELE BUTONU */}
+                <button
+                  type="submit"
+                  className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-[#E8A33D] py-2.5 text-sm font-semibold text-[#0F1720] hover:bg-[#F0B058] active:scale-98 transition-all shadow-md shadow-[#E8A33D]/10"
+                >
+                  <Search size={15} />
+                  Filtreleri Uygula
+                </button>
               </div>
-            </div>
+            </form>
           </aside>
 
           {/* Listings */}
