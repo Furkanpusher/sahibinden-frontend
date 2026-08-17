@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, MapPin, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Trash2, Pencil, Heart } from "lucide-react";
 import { fetchListings } from "../../api";
 
 const defaultImages = [
@@ -16,29 +16,94 @@ export default function HouseDetailPage() {
   const [error, setError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    fetchListings(`/house/${id}/`)
-      .then(setHouse)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [id]);
+  // 🔹 Favori State'leri
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isFavoriting, setIsFavoriting] = useState(false);
 
   // Oturum açmış kullanıcının bilgilerini ve Token'ını alıyoruz
   const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
   const storedUser = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
   const currentUserId = localStorage.getItem("user_id") || storedUser?.id || storedUser?.pk || localStorage.getItem("userId");
 
+  const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8001/api";
+
+  // 1. İlan Detayını ve Kullanıcının Favori Durumunu Çek
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    // Ev detayını getir
+    fetchListings(`/house/${id}/`)
+      .then((data) => {
+        setHouse(data);
+
+        // Kullanıcı giriş yapmışsa bu ev favorilerinde var mı kontrol et
+        if (token) {
+          fetch(`${API_URL}/listings/my-favorites/`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          })
+            .then((res) => (res.ok ? res.json() : []))
+            .then((favList) => {
+              if (Array.isArray(favList)) {
+                const found = favList.some(
+                  (fav) => String(fav.listing?.id) === String(id)
+                );
+                setIsFavorited(found);
+              }
+            })
+            .catch((err) => console.error("Favori durumu alınamadı:", err));
+        }
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id, token, API_URL]);
+
   // İlan sahibinin ID'sini güvenli şekilde çekiyoruz
   const ownerId = house?.listing_owner?.id || house?.listing_owner?.pk || house?.listing_owner;
 
-  // token varsa, kullanıcı IDsi varsa, ve ilan sahibiyse true döncek
+  // token varsa, kullanıcı IDsi varsa, ve ilan sahibiyse true döner
   const isOwner = Boolean(token) && 
                   Boolean(currentUserId) && 
                   Boolean(ownerId) && 
                   String(currentUserId) === String(ownerId);
 
+  // 🔹 FAVORİYE EKLE / ÇIKAR (TOGGLE)
+  const handleToggleFavorite = async () => {
+    if (!token) {
+      if (window.confirm("Bu ilanı favoriye eklemek için giriş yapmalısınız. Giriş sayfasına yönlendirilsin mi?")) {
+        navigate("/login");
+      }
+      return;
+    }
+
+    setIsFavoriting(true);
+    try {
+      const response = await fetch(`${API_URL}/listings/listing/${id}/favorite/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(resData.detail || "Favori işlemi gerçekleştirilemedi.");
+      }
+
+      // Backend'den dönen is_favorited (True / False) değerine göre kalbi güncelle
+      setIsFavorited(resData.is_favorited);
+    } catch (err) {
+      alert(`Hata: ${err.message}`);
+    } finally {
+      setIsFavoriting(false);
+    }
+  };
+
+  // 🔹 İLAN SİLME
   const handleDelete = async () => {
     if (!window.confirm("Bu ev ilanını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
       return;
@@ -46,19 +111,15 @@ export default function HouseDetailPage() {
 
     setIsDeleting(true);
     try {
-      const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
-      const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8001/api";
-      
       const response = await fetch(`${API_URL}/listings/house/${id}/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
       const resData = await response.json().catch(() => ({}));
-
       if (!response.ok) {
         const errorMessage = resData.detail || resData.hata || resData.message || "İlan silinemedi.";
         throw new Error(errorMessage);
@@ -117,19 +178,42 @@ export default function HouseDetailPage() {
         </Link>
 
         <h1 className="text-xl sm:text-2xl font-bold text-[#EDEFF2] mb-1">
-          {house.title || `${house.number_of_rooms || ""} ${house.location || ""}`.trim()}
+          {house.title || `${house.number_of_rooms || ""} ${house.city || ""}`.trim()}
         </h1>
-        {house.location && (
+        {house.city && (
           <p className="flex items-center gap-1.5 text-sm text-[#8B95A3] mb-6">
-            <MapPin size={14} /> {house.location}
+            <MapPin size={14} /> {house.city} {house.district ? `/ ${house.district}` : ""}
           </p>
         )}
 
         <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sol: Görsel, Favori Butonu ve Fiyat */}
           <div className="lg:w-[55%] shrink-0">
-            <div className="rounded-xl overflow-hidden border border-[#232E3D] bg-[#161F2B] aspect-[4/3]">
+            <div className="relative rounded-xl overflow-hidden border border-[#232E3D] bg-[#161F2B] aspect-[4/3] group">
               <img src={image} alt={house.title} className="w-full h-full object-cover" />
+
+              {/* 💖 FAVORİ (KALP) BUTONU */}
+              <button
+                onClick={handleToggleFavorite}
+                disabled={isFavoriting}
+                title={isFavorited ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+                className="absolute top-3 right-3 p-3 rounded-full bg-[#0F1720]/80 backdrop-blur-md border border-[#232E3D] text-[#EDEFF2] hover:scale-110 active:scale-95 transition-all shadow-lg disabled:opacity-50"
+              >
+                {isFavoriting ? (
+                  <Loader2 size={20} className="animate-spin text-[#E8A33D]" />
+                ) : (
+                  <Heart
+                    size={20}
+                    className={`transition-colors ${
+                      isFavorited
+                        ? "fill-red-500 text-red-500"
+                        : "text-[#8B95A3] hover:text-white"
+                    }`}
+                  />
+                )}
+              </button>
             </div>
+
             <div className="mt-4 rounded-xl border border-[#232E3D] bg-[#161F2B] p-5">
               <p className="text-xs text-[#8B95A3] mb-1">Fiyat</p>
               <p className="text-2xl font-bold text-[#E8A33D]">
@@ -138,6 +222,7 @@ export default function HouseDetailPage() {
             </div>
           </div>
 
+          {/* Sağ: Key-Value Tablo + Aksiyon Butonları (Düzenle & Sil) */}
           <div className="flex-1 flex flex-col gap-4">
             <div className="rounded-xl border border-[#232E3D] bg-[#161F2B] overflow-hidden">
               {details.map((d, i) => (
