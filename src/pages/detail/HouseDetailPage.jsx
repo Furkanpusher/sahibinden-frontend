@@ -8,6 +8,15 @@ const defaultImages = [
   "/house-6.jpg", "/house-7.jpg", "/house-8.jpg", "/house-9.jpg", "/house-10.jpg",
 ];
 
+const BACKEND_BASE = "http://127.0.0.1:8001";
+
+// Resim URL'ini tam adrese çevirir (/media/.. -> http://127.0.0.1:8001/media/..)
+const formatImgUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `${BACKEND_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+};
+
 export default function HouseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -15,6 +24,9 @@ export default function HouseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 📸 Galeri Seçili Fotoğraf İndeksi
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   // 🔹 Favori State'leri
   const [isFavorited, setIsFavorited] = useState(false);
@@ -25,7 +37,6 @@ export default function HouseDetailPage() {
   const [reportDescription, setReportDescription] = useState("");
   const [isReporting, setIsReporting] = useState(false);
 
-  // Oturum açmış kullanıcının bilgilerini ve Token'ını alıyoruz
   const token = localStorage.getItem("access") || localStorage.getItem("token") || localStorage.getItem("access_token");
   const storedUser = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
   const currentUserId = localStorage.getItem("user_id") || storedUser?.id || storedUser?.pk || localStorage.getItem("userId");
@@ -65,10 +76,8 @@ export default function HouseDetailPage() {
       .finally(() => setLoading(false));
   }, [id, token, API_URL]);
 
-  // İlan sahibinin ID'sini güvenli şekilde çekiyoruz
   const ownerId = house?.listing_owner?.id || house?.listing_owner?.pk || house?.listing_owner;
 
-  // İlan sahibi mi kontrolü
   const isOwner = Boolean(token) && 
                   Boolean(currentUserId) && 
                   Boolean(ownerId) && 
@@ -196,7 +205,17 @@ export default function HouseDetailPage() {
     );
   }
 
-  const image = defaultImages[house.id % defaultImages.length];
+  // 📸 Fotoğrafları Topla (Galeri + Kapak veya Default)
+  const uploadedImages = [
+    ...(house.images && house.images.length > 0 ? house.images.map((img) => formatImgUrl(img.image)) : []),
+    ...(house.image ? [formatImgUrl(house.image)] : [])
+  ].filter(Boolean);
+
+  const images = uploadedImages.length > 0 
+    ? uploadedImages 
+    : [defaultImages[house.id % defaultImages.length]];
+
+  const activeImage = images[activeImageIndex] || images[0];
 
   const details = [
     { label: "İlan No", value: house.id },
@@ -230,10 +249,18 @@ export default function HouseDetailPage() {
         )}
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sol: Görsel, Favori Butonu ve Fiyat */}
+          {/* Sol: Görsel Galerisi, Favori Butonu ve Fiyat */}
           <div className="lg:w-[55%] shrink-0">
+            {/* Büyük Ana Görsel */}
             <div className="relative rounded-xl overflow-hidden border border-[#232E3D] bg-[#161F2B] aspect-[4/3] group">
-              <img src={image} alt={house.title} className="w-full h-full object-cover" />
+              <img src={activeImage} alt={house.title} className="w-full h-full object-cover transition-all duration-300" />
+
+              {/* Fotoğraf Sayacı */}
+              {images.length > 1 && (
+                <div className="absolute bottom-3 left-3 rounded-md bg-[#0F1720]/80 px-2 py-1 text-xs font-medium text-[#EDEFF2] backdrop-blur-sm border border-[#232E3D]">
+                  {activeImageIndex + 1} / {images.length}
+                </div>
+              )}
 
               {/* 💖 FAVORİ (KALP) BUTONU */}
               <button
@@ -257,6 +284,27 @@ export default function HouseDetailPage() {
               </button>
             </div>
 
+            {/* Küçük Önizleme Kutucukları (Thumbnail Listesi) */}
+            {images.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {images.map((imgUrl, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                      activeImageIndex === idx
+                        ? "border-[#E8A33D] ring-2 ring-[#E8A33D]/20 scale-105"
+                        : "border-[#232E3D] opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={imgUrl} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Fiyat Kutusu */}
             <div className="mt-4 rounded-xl border border-[#232E3D] bg-[#161F2B] p-5">
               <p className="text-xs text-[#8B95A3] mb-1">Fiyat</p>
               <p className="text-2xl font-bold text-[#E8A33D]">

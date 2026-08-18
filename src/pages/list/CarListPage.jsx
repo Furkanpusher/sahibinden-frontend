@@ -17,6 +17,22 @@ const defaultImages = [
   "/car-6.jpg", "/car-7.jpg", "/car-8.jpg", "/car-9.jpg", "/car-10.jpg",
 ];
 
+const BACKEND_BASE = "http://127.0.0.1:8001";
+
+// 📸 Fotoğraf URL Çözümleyici (Öncelik: Galeri/Kapak > Ana Resim > Default Havuzu)
+const getCarCoverImage = (car) => {
+  const coverFromGallery = car.images?.find((img) => img.is_cover)?.image || car.images?.[0]?.image;
+  const rawUrl = coverFromGallery || car.image || car.imageUrl;
+
+  if (rawUrl) {
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
+    return `${BACKEND_BASE}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+  }
+
+  // Yüklenmiş görsel yoksa default listesinden seç
+  return defaultImages[car.id % defaultImages.length];
+};
+
 export default function CarListPage() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,13 +103,10 @@ export default function CarListPage() {
   const handleApplyFilters = (e) => {
     if (e) e.preventDefault();
 
-    // 1. URL'i güncelle
     const cleanParams = Object.fromEntries(
       Object.entries(tempFilters).filter(([_, v]) => v !== "")
     );
     setSearchParams(cleanParams);
-
-    // 2. Uygulanan filtreleri güncelle ➔ useEffect tetiklenir ve TEK bir istek gider
     setAppliedFilters(tempFilters);
   };
 
@@ -122,7 +135,6 @@ export default function CarListPage() {
       <div className="w-full">
         {/* Page Header */}
         <header className="mb-7 border-b border-[#232E3D] pb-5">
-          {/* Üst Bar: Sol (Ana Sayfa) / Sağ (Profil / Menü) */}
           <div className="flex items-center justify-between mb-5">
             <Link
               to="/"
@@ -264,7 +276,6 @@ export default function CarListPage() {
                   onChange={handleChange("price_max")}
                 />
 
-                {/* 🚀 FİLTRELE BUTONU */}
                 <button
                   type="submit"
                   className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-[#E8A33D] py-2.5 text-sm font-semibold text-[#0F1720] hover:bg-[#F0B058] active:scale-98 transition-all shadow-md shadow-[#E8A33D]/10"
@@ -310,8 +321,9 @@ export default function CarListPage() {
                 {cars.map((car) => (
                   <Link to={`/car/${car.id}`} key={car.id} className="group min-w-0">
                     <div className="relative mb-2 aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#232E3D] bg-[#161F2B] transition-all duration-300 group-hover:border-[#4A5568] group-hover:shadow-lg group-hover:shadow-black/10">
+                      {/* 📸 Çözümlenen Görsel */}
                       <img
-                        src={car.imageUrl || defaultImages[car.id % defaultImages.length]}
+                        src={getCarCoverImage(car)}
                         alt={car.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />

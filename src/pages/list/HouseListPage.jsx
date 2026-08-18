@@ -12,6 +12,27 @@ import { fetchListings } from "../../api";
 import { FilterInput, FilterSelect } from "../../components/ListingUI";
 import UserMenu from "../../components/UserMenu";
 
+const defaultImages = [
+  "/house-1.jpg", "/house-2.jpg", "/house-3.jpg", "/house-4.jpg", "/house-5.jpg",
+  "/house-6.jpg", "/house-7.jpg", "/house-8.jpg", "/house-9.jpg", "/house-10.jpg",
+];
+
+const BACKEND_BASE = "http://127.0.0.1:8001";
+
+// 📸 Fotoğraf URL Çözümleyici (Öncelik: Galeri/Kapak > Ana Resim > Default Havuzu)
+const getHouseCoverImage = (house) => {
+  const coverFromGallery = house.images?.find((img) => img.is_cover)?.image || house.images?.[0]?.image;
+  const rawUrl = coverFromGallery || house.image || house.imageUrl;
+
+  if (rawUrl) {
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
+    return `${BACKEND_BASE}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+  }
+
+  // Yüklenmiş görsel yoksa default listesinden seç
+  return defaultImages[house.id % defaultImages.length];
+};
+
 export default function HouseListPage() {
   const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,11 +60,6 @@ export default function HouseListPage() {
     districts: [],
     number_of_rooms: [],
   });
-
-  const defaultImages = [
-    "/house-1.jpg", "/house-2.jpg", "/house-3.jpg", "/house-4.jpg", "/house-5.jpg",
-    "/house-6.jpg", "/house-7.jpg", "/house-8.jpg", "/house-9.jpg", "/house-10.jpg",
-  ];
 
   // 1. API İsteği: Sadece `appliedFilters` değiştiğinde çalışır!
   useEffect(() => {
@@ -84,13 +100,10 @@ export default function HouseListPage() {
   const handleApplyFilters = (e) => {
     if (e) e.preventDefault();
 
-    // 1. URL'i güncelle
     const cleanParams = Object.fromEntries(
       Object.entries(tempFilters).filter(([_, v]) => v !== "")
     );
     setSearchParams(cleanParams);
-
-    // 2. Uygulanan filtreleri güncelle ➔ useEffect tetiklenir ve TEK bir istek gider
     setAppliedFilters(tempFilters);
   };
 
@@ -118,7 +131,6 @@ export default function HouseListPage() {
       <div className="w-full">
         {/* Page Header */}
         <header className="mb-7 border-b border-[#232E3D] pb-5">
-          {/* Üst Bar: Sol (Ana Sayfa) / Sağ (Profil / Menü) */}
           <div className="flex items-center justify-between mb-5">
             <Link
               to="/"
@@ -256,7 +268,6 @@ export default function HouseListPage() {
                   onChange={handleChange("price_max")}
                 />
 
-                {/* 🚀 FİLTRELE BUTONU */}
                 <button
                   type="submit"
                   className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-[#E8A33D] py-2.5 text-sm font-semibold text-[#0F1720] hover:bg-[#F0B058] active:scale-98 transition-all shadow-md shadow-[#E8A33D]/10"
@@ -293,13 +304,15 @@ export default function HouseListPage() {
               </div>
             )}
 
+            {/* House Grid */}
             {!loading && !error && houses.length > 0 && (
               <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
                 {houses.map((house) => (
                   <Link to={`/house/${house.id}`} key={house.id} className="group min-w-0">
                     <div className="relative mb-2 aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#232E3D] bg-[#161F2B] transition-all duration-300 group-hover:border-[#4A5568] group-hover:shadow-lg group-hover:shadow-black/10">
+                      {/* 📸 Çözümlenen Görsel */}
                       <img
-                        src={house.imageUrl || defaultImages[house.id % defaultImages.length]}
+                        src={getHouseCoverImage(house)}
                         alt={house.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />

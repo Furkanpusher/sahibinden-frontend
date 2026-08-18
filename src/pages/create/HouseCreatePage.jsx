@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Home, CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { postListing } from "../../api";
+import { ArrowLeft, Home, CheckCircle2, XCircle, Loader2, Upload, X } from "lucide-react";
+import { postListing, uploadListingImages } from "../../api";
 import { getCities, getDistricts } from "../../data/helper";
 
 const ROOM_OPTIONS = ["1+0", "1+1", "2+1", "3+1", "4+1", "5+1", "Dupleks"];
@@ -12,6 +12,10 @@ export default function CreateHousePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
+
+  // 📸 Fotoğraf State'leri
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
 
   const [form, setForm] = useState({
     title: "",
@@ -42,6 +46,23 @@ export default function CreateHousePage() {
     }));
   };
 
+  // 📸 Fotoğraf Seçme İşlemi
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    setSelectedFiles((prev) => [...prev, ...files]);
+
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setPreviewUrls((prev) => [...prev, ...newPreviews]);
+  };
+
+  // 📸 Seçilen Fotoğrafı Kaldırma
+  const handleRemoveFile = (index) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -52,8 +73,15 @@ export default function CreateHousePage() {
     );
 
     try {
-      await postListing("/all-houses/", payload);
-      setAlert({ type: "success", message: "Ev ilanı başarıyla oluşturuldu!" });
+      // 1. Ev İlanını oluştur
+      const createdHouse = await postListing("/all-houses/", payload);
+
+      // 2. Seçilen fotoğrafları ilana yükle
+      if (selectedFiles.length > 0 && createdHouse?.id) {
+        await uploadListingImages(createdHouse.id, selectedFiles);
+      }
+
+      setAlert({ type: "success", message: "Ev ilanı ve fotoğraflar başarıyla yüklendi!" });
       setTimeout(() => navigate("/all-houses"), 1200);
     } catch (err) {
       setAlert({ type: "error", message: err.message });
@@ -81,6 +109,47 @@ export default function CreateHousePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 📸 FOTOĞRAF YÜKLEME BÖLÜMÜ */}
+          <Section title="Fotoğraflar">
+            <div>
+              <label className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#232E3D] bg-[#0F1720] p-6 hover:border-[#E8A33D] transition-colors cursor-pointer">
+                <Upload size={28} className="text-[#E8A33D] mb-2" />
+                <span className="text-sm font-medium text-[#EDEFF2]">Fotoğraf Yükle</span>
+                <span className="text-xs text-[#667384] mt-1">Birden fazla görsel seçebilirsiniz (JPG, PNG, WEBP)</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Seçilen Fotoğrafların Önizlemesi */}
+              {previewUrls.length > 0 && (
+                <div className="mt-4 grid grid-cols-4 gap-3">
+                  {previewUrls.map((url, idx) => (
+                    <div key={idx} className="relative group rounded-lg overflow-hidden border border-[#232E3D] aspect-square bg-[#0F1720]">
+                      <img src={url} alt={`preview-${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile(idx)}
+                        className="absolute top-1 right-1 rounded-full bg-[#0F1720]/80 p-1 text-[#E88080] hover:bg-[#E88080] hover:text-white transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                      {idx === 0 && (
+                        <span className="absolute bottom-1 left-1 rounded bg-[#E8A33D] px-1.5 py-0.5 text-[10px] font-bold text-[#0F1720]">
+                          Kapak
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Section>
+
           <Section title="Temel Bilgiler">
             <Field label="İlan Başlığı *">
               <input
